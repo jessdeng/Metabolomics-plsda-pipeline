@@ -4,7 +4,7 @@ A Python pipeline for supervised multivariate analysis of mass spectrometry data
 
 ## Background
 
-This project originated from my PhD research analyzing metabolic differences across experimental conditions using direct-injection mass spectrometry. The original analysis was performed in MetaboAnalyst. I rebuilt the pipeline in Python to deepen my understanding of the underlying algorithms, gain full control over each processing step, and create a reproducible, scriptable workflow.
+This project originated from my PhD research analyzing metabolic differences of fungal species across different experimental conditions using ambient ionization mass spectrometry. The original analysis was performed in MetaboAnalyst. I rebuilt the pipeline in Python to deepen my understanding of the underlying algorithms, gain full control over each processing step, and create a reproducible, scriptable workflow.
 
 ## Pipeline Overview
 
