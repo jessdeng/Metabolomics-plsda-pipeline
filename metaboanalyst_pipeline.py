@@ -11,7 +11,7 @@ Notes:
     and R's ropls package.
 
 Usage:
-    python metaboanalyst_pipeline.py
+    python run_analysis.py
 """
 
 import os

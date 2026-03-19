@@ -41,13 +41,12 @@ def load_experiment(experiment_dir):
             col_map = {c.lower(): c for c in df.columns}
             col_map['mz'] = col_map.get('mz') or col_map.get('mass/charge')
             col_map['int'] = col_map.get('int') or col_map.get('intensity')
-            
-            col_map = {c.lower(): c for c in df.columns}
-            print(f"File: {os.path.basename(file_path)}")
-            print(f"Raw columns: {list(df.columns)}")  # before any mapping
-            col_map['mz'] = col_map.get('mz') or col_map.get('mass/charge')
-            col_map['int'] = col_map.get('int') or col_map.get('intensity')
-            print(f"col_map['mz'] = {col_map['mz']}")  # what did it resolve to?
+
+            if col_map['mz'] is None or col_map['int'] is None:
+                print(f"  [warning] Skipping {os.path.basename(file_path)}: "
+                      f"could not find m/z or intensity columns. "
+                      f"Found: {list(df.columns)}")
+                continue
 
             raw_mz_list.append(df[col_map['mz']].values)
             samples.append(df[col_map['int']].values)

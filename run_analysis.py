@@ -8,7 +8,7 @@ from visualization import plot_spectrum_with_features
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXPERIMENT = 'F11A Carbons with Media'
+EXPERIMENT = 'your_experiment_folder'  # ← change this to your experiment folder name
 # ──────────────────────────────────────────────────────────────────────────────
 
 def main():
