@@ -73,10 +73,11 @@ def _load_and_preprocess(experiment_name):
 
 # ── 1. Summary Report ─────────────────────────────────────────────────────────
 
-def run_summary_report(X, y_labels, mz, safe_name):
+def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
     """
     Save a plain text summary of the pipeline settings and results.
-    Reads classifier accuracy results from the feature overlap CSV if available.
+    Accepts pre-computed classifier_results dict {name: (test_accs, train_accs)}
+    to avoid re-running cross-validation. If not provided, runs classifiers fresh.
     """
     lines = []
     lines.append("=" * 60)
@@ -124,12 +125,16 @@ def run_summary_report(X, y_labels, mz, safe_name):
         'Ridge':               (config.USE_RIDGE,               ridge_classify),
     }
     for name, (enabled, fn) in classifier_fns.items():
-        if enabled:
-            test_accs, train_accs = fn(X, y_labels, n_splits=config.CV_FOLDS)
+        if not enabled:
+            lines.append(f"  {name:22s}  [disabled]")
+        elif classifier_results is not None and name in classifier_results:
+            test_accs, train_accs = classifier_results[name]
             lines.append(f"  {name:22s}  test={test_accs.mean():.3f} ± {test_accs.std():.3f}  "
                          f"train={train_accs.mean():.3f} ± {train_accs.std():.3f}")
         else:
-            lines.append(f"  {name:22s}  [disabled]")
+            test_accs, train_accs = fn(X, y_labels, n_splits=config.CV_FOLDS)
+            lines.append(f"  {name:22s}  test={test_accs.mean():.3f} ± {test_accs.std():.3f}  "
+                         f"train={train_accs.mean():.3f} ± {train_accs.std():.3f}")
 
     lines.append("\n── Output Files ────────────────────────────────────────")
     output_patterns = [
@@ -340,9 +345,28 @@ def main():
     X, y_labels, mz, X_filt_raw = _load_and_preprocess(experiment_name)
     print(f"  {X.shape[0]} samples, {X.shape[1]} features")
 
+    # ── Run classifiers once and reuse results ────────────────────────────────
+    classifier_fns = {
+        'Random Forest':       (config.USE_RANDOM_FOREST,       RandomForest),
+        'SVM':                 (config.USE_SVM,                 svm_classify),
+        'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
+        'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
+        'KNN':                 (config.USE_KNN,                 knn_classify),
+        'LDA':                 (config.USE_LDA,                 lda_classify),
+        'Ridge':               (config.USE_RIDGE,               ridge_classify),
+    }
+    classifier_results = {}
+    needs_classifiers = config.RUN_SUMMARY_REPORT
+    if needs_classifiers:
+        print("\n[Extras] Running classifiers...")
+        for name, (enabled, fn) in classifier_fns.items():
+            if enabled:
+                print(f"  {name}...")
+                classifier_results[name] = fn(X, y_labels, n_splits=config.CV_FOLDS)
+
     if config.RUN_SUMMARY_REPORT:
         print("\n[Extras] Summary Report")
-        run_summary_report(X, y_labels, mz, safe_name)
+        run_summary_report(X, y_labels, mz, safe_name, classifier_results=classifier_results)
 
     if config.RUN_VARIATION_PLOT:
         print("\n[Extras] Within-Group Variation Plot")
