@@ -105,6 +105,17 @@ def main():
             print(f"  Train accuracy: {train_accs.mean():.3f} ± {train_accs.std():.3f}")
             step += 1
 
+    # ── Save classifier results for reuse in extras.py ───────────────────────
+    results_path = f"classifier_results_{safe_name}.npz"
+    np.savez(results_path, **{
+        f"{name}__test":  test_accs
+        for name, (test_accs, _) in results.items()
+    }, **{
+        f"{name}__train": train_accs
+        for name, (_, train_accs) in results.items()
+    })
+    print(f"\n  Classifier results saved → {results_path}")
+
     # ── 11. Plot comparison ───────────────────────────────────────────────────
     print("\n[11/12] Plot Comparison")
     plot_accuracy_comparison(results, experiment_name,

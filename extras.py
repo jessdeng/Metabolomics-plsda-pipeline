@@ -345,24 +345,32 @@ def main():
     X, y_labels, mz, X_filt_raw = _load_and_preprocess(experiment_name)
     print(f"  {X.shape[0]} samples, {X.shape[1]} features")
 
-    # ── Run classifiers once and reuse results ────────────────────────────────
-    classifier_fns = {
-        'Random Forest':       (config.USE_RANDOM_FOREST,       RandomForest),
-        'SVM':                 (config.USE_SVM,                 svm_classify),
-        'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
-        'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
-        'KNN':                 (config.USE_KNN,                 knn_classify),
-        'LDA':                 (config.USE_LDA,                 lda_classify),
-        'Ridge':               (config.USE_RIDGE,               ridge_classify),
-    }
+    # ── Load or compute classifier results ───────────────────────────────────
     classifier_results = {}
-    needs_classifiers = config.RUN_SUMMARY_REPORT
-    if needs_classifiers:
-        print("\n[Extras] Running classifiers...")
-        for name, (enabled, fn) in classifier_fns.items():
-            if enabled:
-                print(f"  {name}...")
-                classifier_results[name] = fn(X, y_labels, n_splits=config.CV_FOLDS)
+    results_path = f"classifier_results_{safe_name}.npz"
+    if config.RUN_SUMMARY_REPORT:
+        if os.path.exists(results_path):
+            print(f"\n[Extras] Loading saved classifier results from {results_path}")
+            saved = np.load(results_path)
+            names = set(k.replace('__test', '').replace('__train', '') for k in saved.files)
+            for name in names:
+                classifier_results[name] = (saved[f"{name}__test"], saved[f"{name}__train"])
+        else:
+            print(f"\n[Extras] No saved classifier results found ({results_path})")
+            print("  Running classifiers now — run run_analysis.py first to avoid this.")
+            classifier_fns = {
+                'Random Forest':       (config.USE_RANDOM_FOREST,       RandomForest),
+                'SVM':                 (config.USE_SVM,                 svm_classify),
+                'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
+                'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
+                'KNN':                 (config.USE_KNN,                 knn_classify),
+                'LDA':                 (config.USE_LDA,                 lda_classify),
+                'Ridge':               (config.USE_RIDGE,               ridge_classify),
+            }
+            for name, (enabled, fn) in classifier_fns.items():
+                if enabled:
+                    print(f"  {name}...")
+                    classifier_results[name] = fn(X, y_labels, n_splits=config.CV_FOLDS)
 
     if config.RUN_SUMMARY_REPORT:
         print("\n[Extras] Summary Report")
