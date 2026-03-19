@@ -217,7 +217,7 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
 
     svm = SVC(kernel='linear', random_state=42)
     svm.fit(X, y)
-    svm_imp = np.abs(svm.coef_).mean(axis=0)
+    svm_imp = np.abs(svm.coef_).mean(axis=0) if svm.coef_.ndim > 1 else np.abs(svm.coef_).ravel()
 
     gb = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1,
                                     max_depth=3, random_state=42)
@@ -226,11 +226,11 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
 
     lr = LogisticRegression(max_iter=1000, random_state=42)
     lr.fit(X, y)
-    lr_imp = np.abs(lr.coef_).mean(axis=0)
+    lr_imp = np.abs(lr.coef_).mean(axis=0) if lr.coef_.ndim > 1 else np.abs(lr.coef_).ravel()
 
     ridge = RidgeClassifier()
     ridge.fit(X, y)
-    ridge_imp = np.abs(ridge.coef_).mean(axis=0)
+    ridge_imp = np.abs(ridge.coef_).mean(axis=0) if ridge.coef_.ndim > 1 else np.abs(ridge.coef_).ravel()
 
     vip_imp = compute_vip_1comp(X, y_labels)
 
@@ -259,7 +259,7 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
         'n_methods':       [counts[idx] for idx in overlap_list],
     }).sort_values('n_methods', ascending=False)
 
-    overlap_df.to_csv(f'feature_overlap_{safe_name}.csv', index=False)
+    overlap_df.to_csv(f'feature_overlap_{safe_name}.csv', index=False, encoding='utf-8')
     print(f"  Saved → feature_overlap_{safe_name}.csv")
 
     return overlap_df, counts

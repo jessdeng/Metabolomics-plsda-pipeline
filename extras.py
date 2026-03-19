@@ -266,7 +266,7 @@ def run_cross_experiment_comparison():
     if shared:
         shared_df = pd.DataFrame(shared).sort_values('n_methods_A', ascending=False)
         out_path = f"comparison_{safe_a}_vs_{safe_b}.csv"
-        shared_df.to_csv(out_path, index=False)
+        shared_df.to_csv(out_path, index=False, encoding='utf-8')
         print(f"  Shared features found: {len(shared_df)}")
         print(f"  Saved → {out_path}")
 
@@ -331,7 +331,7 @@ def run_reproducibility_report(X, y_labels, mz, safe_name):
 
     df = pd.DataFrame(results)
     out_path = f"reproducibility_{safe_name}.csv"
-    df.to_csv(out_path, index=False)
+    df.to_csv(out_path, index=False, encoding='utf-8')
     print(f"  Saved → {out_path}")
 
 
