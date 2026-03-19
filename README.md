@@ -18,7 +18,7 @@ Your raw spectra are read in from CSV or TXT files. Each file is one sample, and
 
 Raw spectra often have m/z values measured at slightly different points across samples. Binning groups nearby m/z values into fixed-width windows and sums their intensities, making the data consistent and reducing noise from small m/z shifts between runs.
 
-**Default: 0.5 Da bins.** Using a 0.5 Da bin width for triple quadrupole (QqQ) data is a common approach in metabolomics, particularly for low-resolution instruments, to ensure isotopic peaks are correctly accounted for and to improve spectral consistency across samples. Although the SCIEX 4500 has a native step size of 0.1 Da, 0.5 Da bins were used to account for m/z drift across runs. If your instrument has higher resolution or more stable m/z calibration, you may want to reduce the bin width.
+**Default: 0.5 Da bins.** Using a 0.5 Da bin width for triple quadrupole (QqQ) data is a common approach in metabolomics, particularly for low-resolution instruments, to ensure isotopic peaks are correctly accounted for and to improve spectral consistency across samples.  If your instrument has higher resolution or more stable m/z calibration, you may want to reduce the bin width.
 
 ### 3. Filtering
 
