@@ -1,4 +1,4 @@
-# Metabolomics PLS-DA Pipeline
+# MS Metabolomics Toolkit
 
 A Python pipeline for mass spectrometry metabolomics data analysis. Built to give mass spectrometrists direct access to their own data processing — no coding experience required to get started.
 
@@ -14,7 +14,9 @@ Your raw spectra are read in from CSV or TXT files. Each file is one sample, and
 
 ### 2. Binning
 
-Raw spectra often have m/z values measured at slightly different points across samples. Binning groups nearby m/z values into fixed 0.5 Da windows and sums their intensities. This makes the data consistent and reduces noise from small m/z shifts between runs.
+Raw spectra often have m/z values measured at slightly different points across samples. Binning groups nearby m/z values into fixed-width windows and sums their intensities, making the data consistent and reducing noise from small m/z shifts between runs.
+
+**Default: 0.5 Da bins.** The default parameters were developed for fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using liquid microjunction surface sampling probe (LMJ-SSP). Although the instrument has a native step size of 0.1 Da, 0.5 Da bins were used to account for m/z drift across runs. If your instrument has higher resolution or more stable m/z calibration, you may want to reduce the bin width.
 
 ### 3. Filtering
 
@@ -22,6 +24,8 @@ Two filters are applied to remove uninformative features before any statistics:
 
 - **Low variance filter** — removes features whose intensity barely changes across samples. If a feature looks the same in every sample, it cannot help distinguish your groups.
 - **Low abundance filter** — removes features with very low mean intensity across all samples. These are likely noise rather than real signal.
+
+**Default: 25% variance filter, 5% abundance filter.** These thresholds are taken from MetaboAnalyst defaults and may not be optimal for every dataset. If you find that too many or too few features are being removed, these are the first parameters to adjust.
 
 ### 4. Normalization and Scaling
 
@@ -87,7 +91,7 @@ You should see something like `Python 3.12.0`.
 Or if you have Git installed:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/metabolomics-plsda-pipeline.git
+git clone https://github.com/YOUR_USERNAME/ms-metabolomics-toolkit.git
 ```
 
 ---
@@ -126,6 +130,8 @@ your_experiment_folder/
 - Required columns:
   - `mz` or `Mass/Charge` — m/z values
   - `int` or `Intensity` — intensity values
+
+**Default m/z range: 100–1000 Da.** This reflects the range where meaningful fungal metabolite signal was observed on the SCIEX 4500. Data above 1000 Da was collected but found to be uninformative for this experiment. Adjust this range in `run_analysis.py` to suit your own data.
 
 ---
 
