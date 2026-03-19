@@ -4,7 +4,7 @@ This toolkit started as a Python recreation of the [MetaboAnalyst](https://www.m
 
 From that foundation, the toolkit has expanded to include classifier comparison (Random Forest, SVM, Gradient Boosting) and feature importance overlap analysis, going beyond what MetaboAnalyst offers out of the box.
 
-> ⚠️ **Important:** The default parameters in this pipeline were designed for a specific dataset — fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using liquid microjunction surface sampling probe (LMJ-SSP). If you are using different instrumentation or sample types, you will likely need to adjust the parameters. Guidance on what to change and why is provided inline below.
+> ⚠️ **Important:** The default parameters in this pipeline were designed for a specific dataset — fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using the liquid microjunction surface sampling probe (LMJ-SSP). If you are using different instrumentation or sample types, you will likely need to adjust the parameters. Guidance on what to change and why is provided inline below.
 
 ---
 
