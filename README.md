@@ -1,8 +1,10 @@
-# MS Metabolomics Toolkit
+# Ambient MS Metabolomics Toolkit
 
-A Python pipeline for mass spectrometry metabolomics data analysis. Built to give mass spectrometrists direct access to their own data processing — no coding experience required to get started.
+This toolkit started as a Python recreation of the [MetaboAnalyst](https://www.metaboanalyst.ca) preprocessing and PLS-DA pipeline, built to give direct agency over my own mass spectrometry data without relying on a web interface. The core preprocessing steps — binning, filtering, normalization, log transformation, and auto-scaling — were validated against MetaboAnalyst's own output using the same dataset and settings, matching to 4 decimal places at the PLS-DA component 1 level.
 
-The pipeline takes raw mass spectra from multiple samples, processes them into a comparable format, and identifies which m/z features best distinguish your experimental groups.
+From that foundation, the toolkit has expanded to include classifier comparison (Random Forest, SVM, Gradient Boosting) and feature importance overlap analysis, going beyond what MetaboAnalyst offers out of the box.
+
+> ⚠️ **Important:** The default parameters in this pipeline were designed for a specific dataset — fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using liquid microjunction surface sampling probe (LMJ-SSP). If you are using different instrumentation or sample types, you will likely need to adjust the parameters. Guidance on what to change and why is provided inline below.
 
 ---
 
@@ -16,7 +18,7 @@ Your raw spectra are read in from CSV or TXT files. Each file is one sample, and
 
 Raw spectra often have m/z values measured at slightly different points across samples. Binning groups nearby m/z values into fixed-width windows and sums their intensities, making the data consistent and reducing noise from small m/z shifts between runs.
 
-**Default: 0.5 Da bins.** The default parameters were developed for fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using liquid microjunction surface sampling probe (LMJ-SSP). Although the instrument has a native step size of 0.1 Da, 0.5 Da bins were used to account for m/z drift across runs. If your instrument has higher resolution or more stable m/z calibration, you may want to reduce the bin width.
+**Default: 0.5 Da bins.** Using a 0.5 Da bin width for triple quadrupole (QqQ) data is a common approach in metabolomics, particularly for low-resolution instruments, to ensure isotopic peaks are correctly accounted for and to improve spectral consistency across samples. Although the SCIEX 4500 has a native step size of 0.1 Da, 0.5 Da bins were used to account for m/z drift across runs. If your instrument has higher resolution or more stable m/z calibration, you may want to reduce the bin width.
 
 ### 3. Filtering
 
@@ -25,7 +27,7 @@ Two filters are applied to remove uninformative features before any statistics:
 - **Low variance filter** — removes features whose intensity barely changes across samples. If a feature looks the same in every sample, it cannot help distinguish your groups.
 - **Low abundance filter** — removes features with very low mean intensity across all samples. These are likely noise rather than real signal.
 
-**Default: 25% variance filter, 5% abundance filter.** These thresholds are taken from MetaboAnalyst defaults and may not be optimal for every dataset. If you find that too many or too few features are being removed, these are the first parameters to adjust.
+**Default: 25% variance filter, 5% abundance filter.** These thresholds are taken from MetaboAnalyst defaults. They may not be optimal for every dataset — if too many or too few features are being removed, these are the first parameters to adjust.
 
 ### 4. Normalization and Scaling
 
@@ -91,7 +93,7 @@ You should see something like `Python 3.12.0`.
 Or if you have Git installed:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ms-metabolomics-toolkit.git
+git clone https://github.com/jessdeng/ambient-ms-metabolomics-toolkit.git
 ```
 
 ---
