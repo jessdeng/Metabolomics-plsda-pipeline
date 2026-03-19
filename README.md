@@ -1,10 +1,10 @@
 # Ambient MS Metabolomics Toolkit
 
-This toolkit started as a Python recreation of the [MetaboAnalyst](https://www.metaboanalyst.ca) preprocessing and PLS-DA pipeline, built to give direct agency over my own mass spectrometry data without relying on a web interface. The core preprocessing steps — binning, filtering, normalization, log transformation, and auto-scaling — were validated against MetaboAnalyst's own output using the same dataset and settings, matching to 4 decimal places at the PLS-DA component 1 level.
+This toolkit started as a Python recreation of the [MetaboAnalyst](https://www.metaboanalyst.ca) preprocessing and PLS-DA pipeline, built to give direct agency over mass spectrometry data without relying on a web interface. The core preprocessing steps — binning, filtering, normalization, log transformation, and auto-scaling — were validated against MetaboAnalyst's own output using the same dataset and settings, matching to 4 decimal places at the PLS-DA component 1 level.
 
-From that foundation, the toolkit has expanded to include classifier comparison (Random Forest, SVM, Gradient Boosting) and feature importance overlap analysis, going beyond what MetaboAnalyst offers out of the box.
+From that foundation, the toolkit has expanded to include a full classifier comparison (7 machine learning models) and feature importance overlap analysis, going beyond what MetaboAnalyst offers out of the box.
 
-> ⚠️ **Important:** The default parameters in this pipeline were designed for a specific dataset — fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using the liquid microjunction surface sampling probe (LMJ-SSP). If you are using different instrumentation or sample types, you will likely need to adjust the parameters. Guidance on what to change and why is provided inline below.
+> ⚠️ **Important:** The default parameters in this pipeline were designed for a specific dataset — fungal metabolomics data collected on a SCIEX 4500 triple quadrupole mass spectrometer in MS1-only mode using the liquid microjunction surface sampling probe (LMJ-SSP). If you are using different instrumentation or sample types, you will likely need to adjust the parameters. All parameters are controlled from `config.py` — see the [Configuration](#configuration) section below.
 
 ---
 
@@ -27,31 +27,121 @@ Two filters are applied to remove uninformative features before any statistics:
 - **Low variance filter** — removes features whose intensity barely changes across samples. If a feature looks the same in every sample, it cannot help distinguish your groups.
 - **Low abundance filter** — removes features with very low mean intensity across all samples. These are likely noise rather than real signal.
 
-**Default: 25% variance filter, 5% abundance filter.** These thresholds are taken from MetaboAnalyst defaults. They may not be optimal for every dataset — if too many or too few features are being removed, these are the first parameters to adjust.
+**Default: 25% variance filter, 5% abundance filter.** These thresholds are taken from MetaboAnalyst defaults. They may not be optimal for every dataset — if too many or too few features are being removed, these are the first parameters to adjust in `config.py`.
 
-### 4. Normalization and Scaling
+### 4. Normalization, Transformation, and Scaling
 
-Three transformations are applied to make samples comparable to each other:
+Three steps are applied to make samples comparable to each other. Each can be configured independently in `config.py`.
 
-- **Sum normalization** — divides each sample by its total ion current (TIC) and rescales to the median, correcting for differences in how much sample was injected.
-- **Log10 transformation** — compresses the wide dynamic range of mass spec data so that very high-intensity features do not dominate the analysis.
-- **Auto-scaling** — subtracts the mean and divides by the standard deviation for each feature, so all features contribute equally regardless of their absolute intensity.
+**Normalization** corrects for differences in sample amount or injection volume between runs:
+
+- **TIC** (default) — divides each sample by its total ion current and rescales to the median. Standard for ambient MS and direct infusion experiments.
+- **Median** — divides by the sample median rather than the sum. More robust when a few very abundant features dominate the signal.
+- **PQN** — Probabilistic Quotient Normalization. Compares each sample to a reference spectrum and estimates a dilution factor. Handles sample-to-sample variation well. Recommended if TIC gives poor results.
+- **Quantile** — forces all samples to have the same intensity distribution. Aggressive — use only if you are confident distributional differences are technical, not biological.
+- **None** — no normalization.
+
+**Transformation** compresses the wide dynamic range of MS data:
+
+- **Log10** (default) — standard for MS metabolomics
+- **Log2**, **sqrt**, or **none**
+
+**Scaling** adjusts for differences in feature magnitude so all features contribute equally. Van den Berg et al. (2006, *BMC Genomics* 7:142) compared scaling methods and found autoscaling and range scaling best removed the dependence of feature rankings on average concentration:
+
+- **Autoscale** (default) — subtract mean, divide by standard deviation. All features equally weighted.
+- **Pareto** — divide by square root of standard deviation. A compromise between autoscaling and no scaling.
+- **Range** — divide by biological range (max - min). Scales relative to observed biological variation.
+- **Vast** — downweights features with high relative variation. Focuses on stable, consistently-changing features.
+- **Level** — divide by mean. Converts to fold changes relative to average. Useful for biomarker discovery.
+- **None** — no scaling applied. High-abundance features will dominate.
 
 ### 5. PLS-DA (Partial Least Squares Discriminant Analysis)
 
-PLS-DA is a supervised dimensionality reduction method. It finds combinations of your m/z features (components) that best separate your experimental groups. The 3D scores plot shows where each sample sits in this reduced space — samples that cluster together are metabolically similar, and separation between groups indicates the pipeline has found distinguishing features.
+PLS-DA is a supervised dimensionality reduction method. "Supervised" means it uses your group labels (e.g. control vs treatment) to guide the analysis — it is specifically looking for m/z features that differ between your groups, rather than just describing overall variation.
+
+It works by finding combinations of m/z features (called components) that best separate your groups. The output is a 3D scores plot where each dot is one sample. Samples that cluster together are metabolically similar. Clear separation between group clusters means the pipeline has found m/z features that reliably distinguish your groups. Overlapping clusters suggest the groups are metabolically similar or that there is too much within-group variation.
+
+**Default: 8 components.** More components capture more variation but can overfit. For the scores plot, 8 components are used. For VIP scores (below), only 1 component is used because the Python implementation matches MetaboAnalyst exactly at component 1 but diverges at higher components due to differences between scikit-learn and R's ropls package.
 
 ### 6. VIP Scores (Variable Importance in Projection)
 
-VIP scores rank each m/z feature by how much it contributed to the group separation found by PLS-DA. Features with a VIP score above 1.0 are generally considered important. The top 30 features are shown in a dot plot alongside a heatmap of their mean intensity per group, so you can immediately see which features are high or low in which group.
+VIP scores are produced by PLS-DA and rank each m/z feature by how much it contributed to the group separation. A VIP score above 1.0 is the standard threshold for a feature being considered important — this is not arbitrary, it reflects features that contribute more than average to the model.
+
+The output is a dot plot of the top 30 features alongside a heatmap showing the mean intensity of each feature per group. The heatmap uses a red-blue colour scale where red = high intensity and blue = low intensity. This lets you immediately see not just which features are important, but whether they are higher or lower in each group.
 
 ### 7. Classifier Comparison
 
-Three machine learning classifiers (Random Forest, Support Vector Machine, Gradient Boosting) are each trained and evaluated using 5-fold cross-validation. This means the data is split into 5 parts, and each classifier is tested on data it has never seen. The accuracy scores tell you how well your m/z features can predict group membership, and comparing classifiers helps confirm whether the separation is robust.
+Seven machine learning classifiers are trained and evaluated on your data:
+
+- **Random Forest** — builds many decision trees on random subsets of the data and averages their predictions. Robust to noise and works well with high-dimensional data like MS.
+- **SVM (Support Vector Machine)** — finds the boundary that best separates your groups in feature space. The linear kernel is used here, which is standard for metabolomics.
+- **Gradient Boosting** — builds trees sequentially, each one correcting the errors of the previous. Often very accurate but can overfit.
+- **Logistic Regression** — a simple linear model that predicts group membership. Fast and interpretable. A good baseline.
+- **KNN (K-Nearest Neighbours)** — classifies each sample based on what group its closest neighbours belong to. Simple and intuitive — if your groups are well-separated in feature space, KNN will do well.
+- **LDA (Linear Discriminant Analysis)** — conceptually similar to PLS-DA. Finds linear combinations of features that best separate groups. A classical approach in metabolomics.
+- **Ridge Regression** — a regularized linear model that produces clean per-feature coefficients. Stable, fast, and well-suited to high-dimensional correlated data like MS. A strong choice when the primary question is which m/z values matter most.
+
+Each classifier is evaluated using **5-fold stratified cross-validation**. This means the data is randomly split into 5 equal parts. The model trains on 4 parts and is tested on the 1 part it has never seen. This is repeated 5 times so every sample gets tested exactly once. The result is 5 accuracy scores, one per fold.
+
+**Reading the comparison plot:**
+
+The plot has two panels:
+
+- **Top panel** — shows each fold's test accuracy as a dot, with the mean shown as a horizontal line and a bar for visual reference. Dots spread far apart indicate the model performs inconsistently across folds, which may reflect a small dataset or unstable model.
+- **Bottom panel** — shows mean train accuracy vs mean test accuracy side by side for each model. A large gap between train and test accuracy (train is much higher) indicates **overfitting** — the model has memorised the training data but does not generalise well to new samples. A small gap indicates the model is learning something real.
+
+**What counts as a good accuracy?** This depends entirely on how many groups you have. With 2 groups, random chance gives 50% accuracy. With 3 groups, chance is 33%. A well-performing model should be meaningfully above chance. Perfect accuracy (1.0) on a small dataset should be treated with caution — it may indicate overfitting.
 
 ### 8. Feature Importance Overlap
 
-The top features from each classifier are compared to identify which m/z values appear as important across multiple methods. Features that show up in PLS-DA VIP scores AND multiple classifiers are the most reliable candidates for further investigation.
+Six interpretable methods rank all m/z features by how important they were to group separation: Random Forest, SVM, Gradient Boosting, Logistic Regression, Ridge Regression, and PLS-DA VIP. This step finds features that appear in the top 50 of at least 2 of these 6 methods.
+
+> Note: KNN is not included here because it is distance-based and does not produce interpretable per-feature importance scores. It contributes to the accuracy comparison only.
+
+The output is saved as a CSV file with the following columns:
+
+| Column | What it means | How to use it |
+|--------|--------------|---------------|
+| `mz` | The m/z value of the feature | Use this to look up the feature in your data or a database |
+| `rf_importance` | Random Forest feature importance (mean decrease in impurity) | Higher = that m/z split the data more cleanly across all trees. Relative values with no fixed scale. |
+| `svm_importance` | Mean absolute SVM coefficient across classes | Higher = that m/z pulled samples further apart at the decision boundary. Relative values. |
+| `gb_importance` | Gradient Boosting feature importance | Same interpretation as RF but from a different tree-building strategy. |
+| `lr_importance` | Mean absolute Logistic Regression coefficient | Higher = stronger linear association with group membership. |
+| `ridge_importance` | Mean absolute Ridge Regression coefficient | Higher = stronger regularized linear association with group membership. Complementary to `lr_importance`. |
+| `vip_score` | PLS-DA Variable Importance in Projection | The only column with a meaningful threshold: values above 1.0 are considered important. |
+| `n_methods` | How many of the 6 methods ranked this feature in their top 50 | **Start here.** This is the most useful column for prioritisation. |
+
+**Important: do not compare numbers across columns.** Each importance metric is on a completely different scale — a `rf_importance` of 0.02 and a `vip_score` of 1.5 cannot be directly compared. Instead, use each column to rank features within that method, and use `n_methods` to identify the most consistently important features across all methods.
+
+**How to prioritise candidates:**
+
+1. Sort by `n_methods` descending — features appearing in 5 or 6 methods are your strongest candidates
+2. Among features with the same `n_methods`, check whether `vip_score` is above 1.0
+3. Look at the spectrum plot (`spectrum_features_*.png`) to see where these features sit in the raw data
+
+---
+
+## Configuration
+
+All pipeline settings are controlled from a single file: `config.py`. This is the **only file you need to edit** — you should not need to touch any other `.py` file to customise the pipeline for your data.
+
+Open `config.py` in VS Code to see all available options with explanations. The key settings are:
+
+| Setting | Default | What it controls |
+|---------|---------|-----------------|
+| `EXPERIMENT` | `'your_experiment_folder'` | Your experiment folder name |
+| `MZ_MIN` / `MZ_MAX` | `100` / `1000` | m/z range to keep (Da) |
+| `BIN_WIDTH` | `0.5` | Bin width in Da |
+| `VARIANCE_PERCENTILE` | `25` | Low variance filter threshold (0 = off) |
+| `ABUNDANCE_PERCENTILE` | `5` | Low abundance filter threshold (0 = off) |
+| `NORMALIZATION` | `'tic'` | Sample normalization: `'tic'`, `'median'`, `'pqn'`, `'quantile'`, `'none'` |
+| `LOG_TRANSFORM` | `'log10'` | Transformation: `'log10'`, `'log2'`, `'sqrt'`, `'none'` |
+| `SCALING` | `'autoscale'` | Scaling: `'autoscale'`, `'pareto'`, `'range'`, `'vast'`, `'level'`, `'none'` |
+| `N_PLSDA_COMPONENTS` | `8` | Number of PLS-DA components |
+| `N_TOP_VIP` | `30` | Number of VIP features to plot |
+| `USE_*` | `True` | Toggle individual classifiers on/off |
+| `CV_FOLDS` | `5` | Number of cross-validation folds |
+| `TOP_N_FEATURES` | `50` | Top N features per method for overlap analysis |
 
 ---
 
@@ -62,7 +152,7 @@ The top features from each classifier are compared to identify which m/z values 
 1. Go to [https://www.python.org/downloads](https://www.python.org/downloads)
 2. Click the big yellow **Download Python** button
 3. Run the installer
-4. ⚠️ **Important:** Check the box that says **"Add Python to PATH"** before clicking Install
+4. ⚠️ **Important:** Check the box that says **"Add Python to PATH"** before clicking Install — without this, your computer will not be able to find Python when you run commands
 
 To verify it worked, open a terminal and run:
 
@@ -70,11 +160,13 @@ To verify it worked, open a terminal and run:
 python --version
 ```
 
-You should see something like `Python 3.12.0`.
+You should see something like `Python 3.12.0`. If you get an error, Python was not added to PATH — re-run the installer and make sure the box is checked.
 
 ---
 
 ### Step 2 — Install VS Code
+
+VS Code is a free code editor that makes it easy to open, edit, and run Python files.
 
 1. Go to [https://code.visualstudio.com](https://code.visualstudio.com)
 2. Download and install for your operating system
@@ -85,6 +177,8 @@ You should see something like `Python 3.12.0`.
 ---
 
 ### Step 3 — Download This Repository
+
+A repository is just a folder containing all the project files.
 
 1. Click the green **Code** button at the top of this GitHub page
 2. Click **Download ZIP**
@@ -100,6 +194,8 @@ git clone https://github.com/jessdeng/ambient-ms-metabolomics-toolkit.git
 
 ### Step 4 — Install Required Packages
 
+Python packages are add-ons that give Python extra capabilities — things like reading spreadsheets, doing statistics, and making plots. This step installs everything the pipeline needs.
+
 1. Open the project folder in VS Code: **File → Open Folder**
 2. Open a terminal in VS Code: **Terminal → New Terminal**
 3. Run:
@@ -108,13 +204,13 @@ git clone https://github.com/jessdeng/ambient-ms-metabolomics-toolkit.git
 python setup.py
 ```
 
-This installs all the Python packages the pipeline needs. You only need to do this once.
+This only needs to be done once. You will see a list of packages being downloaded and installed — this is normal.
 
 ---
 
 ### Step 5 — Set Up Your Data
 
-Organize your experiment data in the following folder structure:
+Organize your experiment data in the following folder structure. The folder names become your group labels in all plots and outputs, so name them clearly.
 
 ```
 your_experiment_folder/
@@ -133,25 +229,28 @@ your_experiment_folder/
   - `mz` or `Mass/Charge` — m/z values
   - `int` or `Intensity` — intensity values
 
-**Default m/z range: 100–1000 Da.** This reflects the range where meaningful fungal metabolite signal was observed on the SCIEX 4500. Data above 1000 Da was collected but found to be uninformative for this experiment. Adjust this range in `run_analysis.py` to suit your own data.
+**Default m/z range: 100–1000 Da.** This reflects the range where meaningful fungal metabolite signal was observed on the SCIEX 4500. Data above 1000 Da was collected but found to be uninformative for this experiment. Adjust `MZ_MIN` and `MZ_MAX` in `config.py` to suit your own data.
 
 ---
 
 ### Step 6 — Configure and Run
 
-1. Open `run_analysis.py` in VS Code
-2. At the top of the file, set the experiment folder name:
+1. Open `config.py` in VS Code
+2. Set your experiment folder name:
 
 ```python
 EXPERIMENT = 'your_experiment_folder'
 ```
 
-3. Make sure your experiment folder is in the **same directory** as the `.py` files
-4. In the terminal, run:
+3. Adjust any other settings as needed (see the [Configuration](#configuration) section above)
+4. Make sure your experiment folder is in the **same directory** as the `.py` files
+5. In the terminal, run:
 
 ```bash
 python run_analysis.py
 ```
+
+The terminal will print progress as each step runs, including which normalization, transformation, and scaling settings are active. If something goes wrong, the error message will tell you which step failed.
 
 ---
 
@@ -161,11 +260,11 @@ After running, the following files will be saved in the project folder:
 
 | File | Description |
 |------|-------------|
-| `plsda_scores_3d_*.html` | Interactive 3D PLS-DA scores plot |
-| `vip_scores_*.png` | Top 30 VIP features with heatmap |
-| `classifier_comparison_*.png` | Accuracy comparison across classifiers |
-| `spectrum_features_*.png` | Mass spectrum with important features highlighted |
-| `feature_importance_*.csv` | Top features from each classifier exported as CSV |
+| `plsda_scores_3d_*.html` | Interactive 3D PLS-DA scores plot — open in any web browser |
+| `vip_scores_*.png` | Top VIP features with intensity heatmap per group |
+| `classifier_comparison_*.png` | Per-fold accuracy dots and train vs test overfitting panel |
+| `spectrum_features_*.png` | Average mass spectrum per group with important features marked |
+| `feature_overlap_*.csv` | Important m/z features ranked by how many methods identified them |
 
 ---
 

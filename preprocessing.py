@@ -66,6 +66,10 @@ def load_experiment(experiment_dir):
 
     return np.array(interpolated, dtype=float), np.array(labels), names, common_mz
 
+def filter_mass_range(X, mz, mz_min=100, mz_max=1000):
+    keep = (mz >= mz_min) & (mz <= mz_max)
+    return X[:, keep], mz[keep]
+
 def bin_features(X, mz, bin_width=0.5):
     """
     Bin m/z features into fixed-width bins by summing intensities.
@@ -107,20 +111,103 @@ def filter_low_abundance(X, mz, percentile=5):
     return X[:, keep], mz[keep]
 
 
-def preprocess(X):
-    """Sum normalization → log10 → auto-scaling."""
-    # TIC Normalization
-    row_sums = X.sum(axis=1, keepdims=True)
-    X_norm = X / row_sums * np.median(row_sums)
+def preprocess(X, normalization='tic', log_transform='log10', scaling='autoscale'):
+    """
+    Normalize, transform, and scale the data.
 
-    # Log10 Transformation
-    min_positive = X_norm[X_norm > 0].min()
-    X_log = np.log10(X_norm + min_positive / 2)
-    feat_mean = X_log.mean(axis=0)
+    Parameters
+    ----------
+    normalization : str
+        Sample normalization method. Options: 'tic', 'median', 'pqn', 'quantile', 'none'.
+        See Wu & Li (2016) Sci Rep 6:38881 for a comparison of methods.
+    log_transform : str
+        Transformation to apply. Options: 'log10', 'log2', 'sqrt', 'none'.
+    scaling : str
+        Scaling method. Options: 'autoscale', 'pareto', 'range', 'vast', 'level', 'none'.
+        See van den Berg et al. (2006) BMC Genomics 7:142 for guidance.
+    """
 
-    # Auto Scaling
-    feat_std = X_log.std(axis=0, ddof=1)
+    # ── Normalization ─────────────────────────────────────────────────────────
+    if normalization == 'tic':
+        row_sums = X.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1
+        X = X / row_sums * np.median(row_sums)
+
+    elif normalization == 'median':
+        row_medians = np.median(X, axis=1, keepdims=True)
+        row_medians[row_medians == 0] = 1
+        X = X / row_medians * np.median(row_medians)
+
+    elif normalization == 'pqn':
+        # Probabilistic Quotient Normalization
+        # Reference: Dieterle et al. (2006) Anal Chem 78:4281
+        # 1. TIC-normalize first as a preliminary step
+        row_sums = X.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1
+        X_tic = X / row_sums
+        # 2. Reference spectrum = median of all TIC-normalized samples
+        reference = np.median(X_tic, axis=0)
+        reference[reference == 0] = 1
+        # 3. Quotients = each sample divided by reference
+        quotients = X_tic / reference
+        # 4. Dilution factor = median of quotients per sample
+        dilution = np.median(quotients, axis=1, keepdims=True)
+        dilution[dilution == 0] = 1
+        X = X_tic / dilution
+
+    elif normalization == 'quantile':
+        # Quantile normalization: force all samples to same distribution
+        ranks = np.argsort(np.argsort(X, axis=1), axis=1)
+        sorted_X = np.sort(X, axis=1)
+        row_means = sorted_X.mean(axis=0)
+        X = row_means[ranks]
+
+    elif normalization == 'none':
+        pass
+
+    else:
+        raise ValueError(f"Unknown normalization: '{normalization}'. "
+                         f"Choose from: 'tic', 'median', 'pqn', 'quantile', 'none'.")
+
+    # ── Transformation ────────────────────────────────────────────────────────
+    min_positive = X[X > 0].min() if (X > 0).any() else 1e-6
+    half_min = min_positive / 2
+
+    if log_transform == 'log10':
+        X = np.log10(X + half_min)
+    elif log_transform == 'log2':
+        X = np.log2(X + half_min)
+    elif log_transform == 'sqrt':
+        X = np.sqrt(X)
+    elif log_transform == 'none':
+        pass
+    else:
+        raise ValueError(f"Unknown log_transform: '{log_transform}'. "
+                         f"Choose from: 'log10', 'log2', 'sqrt', 'none'.")
+
+    # ── Scaling ───────────────────────────────────────────────────────────────
+    feat_mean = X.mean(axis=0)
+    feat_std  = X.std(axis=0, ddof=1)
     feat_std[feat_std == 0] = 1
-    X_scaled = (X_log - feat_mean) / feat_std
 
-    return X_scaled
+    if scaling == 'autoscale':
+        X = (X - feat_mean) / feat_std
+    elif scaling == 'pareto':
+        X = (X - feat_mean) / np.sqrt(feat_std)
+    elif scaling == 'range':
+        feat_range = X.max(axis=0) - X.min(axis=0)
+        feat_range[feat_range == 0] = 1
+        X = (X - feat_mean) / feat_range
+    elif scaling == 'vast':
+        X = ((X - feat_mean) / feat_std) * (feat_mean / (feat_std + 1e-10))
+    elif scaling == 'level':
+        level = np.abs(feat_mean)
+        level[level == 0] = 1
+        X = (X - feat_mean) / level
+    elif scaling == 'none':
+        X = X - feat_mean
+    else:
+        raise ValueError(f"Unknown scaling: '{scaling}'. "
+                         f"Choose from: 'autoscale', 'pareto', 'range', 'vast', 'level', 'none'.")
+
+    return X

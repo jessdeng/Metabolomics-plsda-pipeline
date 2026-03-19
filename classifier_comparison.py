@@ -12,7 +12,7 @@ Classifiers:
     - Logistic Regression
     - K-Nearest Neighbors
     - Linear Discriminant Analysis
-    - ElasticNet (via SGDClassifier)
+    - Ridge Regression
 
 Usage:
     python run_analysis.py
@@ -27,7 +27,7 @@ from collections import Counter
 
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
@@ -118,11 +118,10 @@ def lda_classify(X, y_labels, n_splits=5, random_state=42):
     )
 
 
-def elasticnet_classify(X, y_labels, n_splits=5, random_state=42):
+def ridge_classify(X, y_labels, n_splits=5, random_state=42):
     y = _encode(y_labels)
     return _run_cv(
-        lambda: SGDClassifier(loss='modified_huber', penalty='elasticnet',
-                              l1_ratio=0.5, max_iter=5000, random_state=random_state),
+        lambda: RidgeClassifier(),
         X, y, n_splits, random_state
     )
 
@@ -197,14 +196,18 @@ def plot_accuracy_comparison(results, experiment_name, out_path):
 
 # ── Feature importance overlap ────────────────────────────────────────────────
 
-def feature_importance_analysis(X, y_labels, mz, safe_name):
+def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
     """
     Fits RF, SVM, GB, LR, and PLS-DA (VIP) on the full dataset and finds
     m/z features that appear in the top 50 of at least 2 methods.
+
+    Note: KNN is excluded here because it is distance-based and does not
+    produce interpretable per-feature importance scores. It contributes to
+    the accuracy comparison only. Ridge Regression is included via its
+    linear coefficients.
     """
     le = LabelEncoder()
     y = le.fit_transform(y_labels)
-    top_n = 50
 
     # Fit each model
     rf = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -224,30 +227,35 @@ def feature_importance_analysis(X, y_labels, mz, safe_name):
     lr.fit(X, y)
     lr_imp = np.abs(lr.coef_).mean(axis=0)
 
+    ridge = RidgeClassifier()
+    ridge.fit(X, y)
+    ridge_imp = np.abs(ridge.coef_).mean(axis=0)
+
     vip_imp = compute_vip_1comp(X, y_labels)
 
     # Find top features per method
     tops = [
         set(np.argsort(imp)[::-1][:top_n])
-        for imp in [rf_imp, svm_imp, gb_imp, lr_imp, vip_imp]
+        for imp in [rf_imp, svm_imp, gb_imp, lr_imp, ridge_imp, vip_imp]
     ]
     counts = Counter(idx for top in tops for idx in top)
 
     overlap_2plus = {idx for idx, c in counts.items() if c >= 2}
     overlap_3plus = {idx for idx, c in counts.items() if c >= 3}
 
-    print(f"  Features in at least 2 of 5 methods: {len(overlap_2plus)}")
-    print(f"  Features in at least 3 of 5 methods: {len(overlap_3plus)}")
+    print(f"  Features in at least 2 of 6 methods: {len(overlap_2plus)}")
+    print(f"  Features in at least 3 of 6 methods: {len(overlap_3plus)}")
 
     overlap_list = sorted(overlap_2plus)
     overlap_df = pd.DataFrame({
-        'mz':            mz[overlap_list],
-        'rf_importance': rf_imp[overlap_list],
-        'svm_importance': svm_imp[overlap_list],
-        'gb_importance': gb_imp[overlap_list],
-        'lr_importance': lr_imp[overlap_list],
-        'vip_score':     vip_imp[overlap_list],
-        'n_methods':     [counts[idx] for idx in overlap_list],
+        'mz':              mz[overlap_list],
+        'rf_importance':   rf_imp[overlap_list],
+        'svm_importance':  svm_imp[overlap_list],
+        'gb_importance':   gb_imp[overlap_list],
+        'lr_importance':   lr_imp[overlap_list],
+        'ridge_importance': ridge_imp[overlap_list],
+        'vip_score':       vip_imp[overlap_list],
+        'n_methods':       [counts[idx] for idx in overlap_list],
     }).sort_values('n_methods', ascending=False)
 
     overlap_df.to_csv(f'feature_overlap_{safe_name}.csv', index=False)
