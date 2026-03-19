@@ -1,81 +1,150 @@
 # Metabolomics PLS-DA Pipeline
 
-A Python pipeline for supervised multivariate analysis of mass spectrometry data using Partial Least Squares Discriminant Analysis (PLS-DA). Built to reproduce and validate results from [MetaboAnalyst](https://www.metaboanalyst.ca/), a widely used web-based metabolomics platform.
+A Python pipeline for mass spectrometry metabolomics data analysis. Built to give mass spectrometrists direct access to their own data processing — no coding experience required to get started.
 
-## Background
+The pipeline takes raw mass spectra from multiple samples, processes them into a comparable format, and identifies which m/z features best distinguish your experimental groups.
 
-This project originated from my PhD research analyzing metabolic differences of fungal species across different experimental conditions using ambient ionization mass spectrometry. The original analysis was performed in MetaboAnalyst. I rebuilt the pipeline in Python to deepen my understanding of the underlying algorithms, gain full control over each processing step, and create a reproducible, scriptable workflow.
+---
 
-## Pipeline Overview
+## What This Pipeline Does
 
-The pipeline follows the same sequence as MetaboAnalyst:
+### 1. Loading
+Your raw spectra are read in from CSV or TXT files. Each file is one sample, and each subfolder represents one group (e.g. control vs treatment). Because different instruments or export settings can produce spectra with slightly different m/z axes, all samples are interpolated onto a shared m/z axis so they can be compared directly.
 
-1. **Data loading** — Reads raw CSV files organized by experimental group
-2. **m/z binning** — Combines features into 0.5 Da bins by summing intensities
-3. **Data filtering** — Removes low-variance features (bottom 25% by relative standard deviation) and low-abundance features (bottom 5% by mean intensity)
-4. **Sum normalization** — Scales each sample by its total intensity, adjusted to the median across all samples
-5. **Log10 transformation** — Applies log base 10 with half-minimum imputation for zero values
-6. **Auto-scaling** — Mean-centers and divides by the standard deviation of each feature (z-score), following the rationale in [van den Berg et al. (2006)](https://doi.org/10.1186/1471-2164-7-142)
-7. **PLS-DA** — Fits a Partial Least Squares Discriminant Analysis model to separate experimental groups
-8. **Cross-validation** — 5-fold stratified cross-validation to assess model performance
-9. **VIP scores** — Variable Importance in Projection scores to identify the most discriminating m/z features
+### 2. Binning
+Raw spectra often have m/z values measured at slightly different points across samples. Binning groups nearby m/z values into fixed 0.5 Da windows and sums their intensities. This makes the data consistent and reduces noise from small m/z shifts between runs.
 
-## Validation Against MetaboAnalyst
+### 3. Filtering
+Two filters are applied to remove uninformative features before any statistics:
+- **Low variance filter** — removes features whose intensity barely changes across samples. If a feature looks the same in every sample, it cannot help distinguish your groups.
+- **Low abundance filter** — removes features with very low mean intensity across all samples. These are likely noise rather than real signal.
 
-The component 1 VIP scores from this pipeline were validated against MetaboAnalyst's output across all 2707 features:
+### 4. Normalization and Scaling
+Three transformations are applied to make samples comparable to each other:
+- **Sum normalization** — divides each sample by its total ion current (TIC) and rescales to the median, correcting for differences in how much sample was injected.
+- **Log10 transformation** — compresses the wide dynamic range of mass spec data so that very high-intensity features do not dominate the analysis.
+- **Auto-scaling** — subtracts the mean and divides by the standard deviation for each feature, so all features contribute equally regardless of their absolute intensity.
 
-- Maximum absolute difference: 0.00005
-- Ranking correlation: 0.9999999808
-- Identical number of features above the VIP > 1 threshold
+### 5. PLS-DA (Partial Least Squares Discriminant Analysis)
+PLS-DA is a supervised dimensionality reduction method. It finds combinations of your m/z features (components) that best separate your experimental groups. The 3D scores plot shows where each sample sits in this reduced space — samples that cluster together are metabolically similar, and separation between groups indicates the pipeline has found distinguishing features.
 
-VIP scores are computed using 1 component because Python's scikit-learn PLS implementation and MetaboAnalyst's R-based ropls package produce identical first components but diverge at higher components due to differences in the internal deflation algorithms. This is a known cross-platform numerical issue, not a bug.
+### 6. VIP Scores (Variable Importance in Projection)
+VIP scores rank each m/z feature by how much it contributed to the group separation found by PLS-DA. Features with a VIP score above 1.0 are generally considered important. The top 30 features are shown in a dot plot alongside a heatmap of their mean intensity per group, so you can immediately see which features are high or low in which group.
 
-## Outputs
+### 7. Classifier Comparison
+Three machine learning classifiers (Random Forest, Support Vector Machine, Gradient Boosting) are each trained and evaluated using 5-fold cross-validation. This means the data is split into 5 parts, and each classifier is tested on data it has never seen. The accuracy scores tell you how well your m/z features can predict group membership, and comparing classifiers helps confirm whether the separation is robust.
 
-- **PLS-DA scores plot** — 2D scatter plot of component 1 vs component 2 with % covariance explained on each axis
-- **VIP bar chart** — Top 30 features ranked by VIP score
-- **VIP table** — CSV file with all m/z features and their VIP scores, sorted by importance
+### 8. Feature Importance Overlap
+The top features from each classifier are compared to identify which m/z values appear as important across multiple methods. Features that show up in PLS-DA VIP scores AND multiple classifiers are the most reliable candidates for further investigation.
 
-## Project Structure
+---
 
+## Setup Instructions (Start Here)
+
+### Step 1 — Install Python
+
+1. Go to [https://www.python.org/downloads](https://www.python.org/downloads)
+2. Click the big yellow **Download Python** button
+3. Run the installer
+4. ⚠️ **Important:** Check the box that says **"Add Python to PATH"** before clicking Install
+
+To verify it worked, open a terminal and run:
 ```
-metabolomics-plsda-pipeline/
-├── README.md
-├── metaboanalyst_pipeline.py      # Main pipeline script
-├── requirements.txt               # Python dependencies
-└── S9 Carbon with Media/          # Example experiment folder
-    ├── Control Media/             #   Group subfolder containing sample CSVs
-    ├── Glycerol Media/
-    ├── S9 Control/
-    └── ...
+python --version
+```
+You should see something like `Python 3.12.0`.
+
+---
+
+### Step 2 — Install VS Code
+
+1. Go to [https://code.visualstudio.com](https://code.visualstudio.com)
+2. Download and install for your operating system
+3. Open VS Code
+4. Go to the Extensions panel (left sidebar, looks like four squares)
+5. Search for **Python** and install the extension by Microsoft
+
+---
+
+### Step 3 — Download This Repository
+
+1. Click the green **Code** button at the top of this GitHub page
+2. Click **Download ZIP**
+3. Unzip the folder somewhere on your computer (e.g. Desktop)
+
+Or if you have Git installed:
+```
+git clone https://github.com/YOUR_USERNAME/metabolomics-plsda-pipeline.git
 ```
 
-## Usage
+---
 
-```bash
-python metaboanalyst_pipeline.py
+### Step 4 — Install Required Packages
+
+1. Open the project folder in VS Code: **File → Open Folder**
+2. Open a terminal in VS Code: **Terminal → New Terminal**
+3. Run:
 ```
-
-To analyze a different experiment, change the `EXPERIMENT` variable at the top of the script.
-
-## Requirements
-
-- Python 3.8+
-- numpy
-- pandas
-- matplotlib
-- seaborn
-- scikit-learn
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
 ```
 
-## What I Learned
+This installs all the Python packages the pipeline needs. You only need to do this once.
 
-- How PLS-DA works internally: the NIPALS algorithm, weight vectors, score deflation, and VIP computation
-- Why different software implementations (Python vs R) can produce different multivariate results despite using theoretically equivalent algorithms
-- The importance of validating computational pipelines against established tools before drawing scientific conclusions
-- Practical Python skills: numpy array operations, pandas data wrangling, matplotlib visualization, and scikit-learn's machine learning API
+---
+
+### Step 5 — Set Up Your Data
+
+Organize your experiment data in the following folder structure:
+
+```
+your_experiment_folder/
+├── Group1/
+│   ├── sample1.csv   or   sample1.txt
+│   ├── sample2.csv   or   sample2.txt
+├── Group2/
+│   ├── sample1.csv   or   sample1.txt
+│   ├── sample2.csv   or   sample2.txt
+```
+
+- Each **subfolder** = one group/class (e.g. `Control`, `Treatment`)
+- Each **file** = one sample
+- Supported formats: `.csv` (comma-separated) or `.txt` (tab-separated)
+- Required columns:
+  - `mz` or `Mass/Charge` — m/z values
+  - `int` or `Intensity` — intensity values
+
+---
+
+### Step 6 — Configure and Run
+
+1. Open `run_analysis.py` in VS Code
+2. At the top of the file, set the experiment folder name:
+```python
+EXPERIMENT = 'your_experiment_folder'
+```
+3. Make sure your experiment folder is in the **same directory** as the `.py` files
+4. In the terminal, run:
+```
+python run_analysis.py
+```
+
+---
+
+## Output Files
+
+After running, the following files will be saved in the project folder:
+
+| File | Description |
+|------|-------------|
+| `plsda_scores_3d_*.html` | Interactive 3D PLS-DA scores plot |
+| `vip_scores_*.png` | Top 30 VIP features with heatmap |
+| `classifier_comparison_*.png` | Accuracy comparison across classifiers |
+| `spectrum_features_*.png` | Mass spectrum with important features highlighted |
+| `feature_importance_*.csv` | Top features from each classifier exported as CSV |
+
+---
+
+## Requirements
+
+- Python 3.8 or higher
+- See `requirements.txt` for package versions
