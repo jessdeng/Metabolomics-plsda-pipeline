@@ -155,7 +155,7 @@ def run_summary_report(X, y_labels, mz, safe_name):
 
 def run_variation_plot(X, y_labels, safe_name):
     """
-    Violin plot showing the distribution of preprocessed feature intensities
+    Box plot showing the distribution of preprocessed feature intensities
     per sample, grouped by class. Helps identify outlier samples.
     """
     groups = sorted(np.unique(y_labels))
@@ -169,8 +169,7 @@ def run_variation_plot(X, y_labels, safe_name):
     df = pd.DataFrame(records)
 
     fig, ax = plt.subplots(figsize=(max(8, len(groups) * 2), 5))
-    sns.violinplot(data=df, x='group', y='intensity', palette=palette,
-                   inner='box', ax=ax)
+    sns.boxplot(data=df, x='group', y='intensity', palette=palette, ax=ax)
     ax.set_xlabel('Group')
     ax.set_ylabel('Preprocessed Intensity')
     ax.set_title(f'Within-Group Feature Intensity Distribution — {config.EXPERIMENT}')
