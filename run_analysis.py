@@ -22,7 +22,7 @@ def main():
     )
 
     # ── 1. Load & filter ──────────────────────────────────────────────────────
-    print(f"\n[1/7] Loading data: {experiment_name!r}")
+    print(f"\n[1/9] Loading data: {experiment_name!r}")
     X_raw, y_labels, sample_names, mz = load_experiment(experiment_dir)
     print(f"  Raw samples : {X_raw.shape[0]}")
     print(f"  Raw features: {X_raw.shape[1]}")
@@ -44,7 +44,7 @@ def main():
         print(f"    {g:25s}  n={count}")
 
     # ── 2. Preprocess ─────────────────────────────────────────────────────────
-    print("\n[2/7] Preprocessing (sum norm → log10 → auto-scale)")
+    print("\n[2/9] Preprocessing (sum norm → log10 → auto-scale)")
     X = preprocess(X_filt)
 
     # ── 3. PLS-DA ─────────────────────────────────────────────────────────────

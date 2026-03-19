@@ -66,10 +66,6 @@ def load_experiment(experiment_dir):
 
     return np.array(interpolated, dtype=float), np.array(labels), names, common_mz
 
-def filter_mass_range(X, mz, mz_min=100, mz_max=1000):
-    keep = (mz >= mz_min) & (mz <= mz_max)
-    return X[:, keep], mz[keep]
-
 def bin_features(X, mz, bin_width=0.5):
     """
     Bin m/z features into fixed-width bins by summing intensities.

@@ -24,7 +24,7 @@ def plot_spectrum_with_features(X_binned, mz, y_labels, overlap_df, experiment_n
 
         ax.set_ylabel('Intensity (cps)')
         ax.set_title(group, fontsize=10)
-        ax.set_xlim(100, 1000)
+        ax.set_xlim(mz.min(), mz.max())
 
     axes[-1].set_xlabel('m/z')
     fig.suptitle(f'Group Spectra with Important Features — {experiment_name}', fontsize=13)
