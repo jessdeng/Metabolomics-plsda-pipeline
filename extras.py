@@ -145,13 +145,13 @@ def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
         f"feature_overlap_{safe_name}.csv",
     ]
     for f in output_patterns:
-        exists = "✓" if os.path.exists(f) else "✗ not found"
+        exists = "[ok]" if os.path.exists(f) else "[missing]"
         lines.append(f"  {exists}  {f}")
 
     lines.append("\n" + "=" * 60)
 
     out_path = f"summary_{safe_name}.txt"
-    with open(out_path, 'w') as f:
+    with open(out_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
     print(f"  Saved → {out_path}")
 

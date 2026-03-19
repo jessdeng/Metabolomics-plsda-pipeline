@@ -17,7 +17,7 @@ def install():
     print("\nInstalling required packages...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
 
-    print("\n✓ Setup complete!")
+    print("\n[ok] Setup complete!")
     print("\nNext step: open run_analysis.py, set your EXPERIMENT folder name, then run:")
     print("  python run_analysis.py")
 

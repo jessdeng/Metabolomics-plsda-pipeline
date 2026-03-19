@@ -36,7 +36,7 @@ def load_experiment(experiment_dir):
 
         for file_path in data_files:
             sep = '\t' if file_path.endswith('.txt') else ','
-            df = pd.read_csv(file_path, sep=sep)
+            df = pd.read_csv(file_path, sep=sep, encoding='utf-8-sig')
             df.columns = df.columns.str.lstrip('\ufeff').str.strip()
             col_map = {c.lower(): c for c in df.columns}
             col_map['mz'] = col_map.get('mz') or col_map.get('mass/charge')
