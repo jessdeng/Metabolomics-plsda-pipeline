@@ -122,7 +122,7 @@ def elasticnet_classify(X, y_labels, n_splits=5, random_state=42):
     y = _encode(y_labels)
     return _run_cv(
         lambda: SGDClassifier(loss='modified_huber', penalty='elasticnet',
-                              l1_ratio=0.5, max_iter=1000, random_state=random_state),
+                              l1_ratio=0.5, max_iter=5000, random_state=random_state),
         X, y, n_splits, random_state
     )
 

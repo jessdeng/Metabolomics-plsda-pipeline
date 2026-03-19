@@ -25,7 +25,7 @@ def main():
     )
 
     # ── 1. Load & filter ──────────────────────────────────────────────────────
-    print(f"\n[1/7] Loading data: {experiment_name!r}")
+    print(f"\n[1/12] Loading data: {experiment_name!r}")
     X_raw, y_labels, sample_names, mz = load_experiment(experiment_dir)
     print(f"  Raw samples : {X_raw.shape[0]}")
     print(f"  Raw features: {X_raw.shape[1]}")
@@ -47,16 +47,16 @@ def main():
         print(f"    {g:25s}  n={count}")
 
     # ── 2. Preprocess ─────────────────────────────────────────────────────────
-    print("\n[2/7] Preprocessing (sum norm → log10 → auto-scale)")
+    print("\n[2/12] Preprocessing (sum norm → log10 → auto-scale)")
     X = preprocess(X_filt)
 
     # ── 3. PLS-DA ─────────────────────────────────────────────────────────────
-    print("\n[3/9] Fitting PLS-DA (8 components for scores plot)")
+    print("\n[3/12] Fitting PLS-DA (8 components for scores plot)")
     pls, T, y, Y, classes = fit_plsda(X, y_labels, 8)
     print(f"  Classes: {list(classes)}")
 
     # ── 4. VIP scores ─────────────────────────────────────────────────────────
-    print("\n[4/9] Computing VIP scores (1 component)")
+    print("\n[4/12] Computing VIP scores (1 component)")
     vip = compute_vip_1comp(X, y_labels)
     plot_scores_3d(T, pls, y_labels, classes, experiment_name,
                    out_path=f"plsda_scores_3d_{safe_name}.html")
@@ -75,20 +75,20 @@ def main():
     }
 
     results = {}
-    for i, (name, fn) in enumerate(classifier_fns.items(), start=5):
-        print(f"\n[{i}/9] {name}")
+    for i, (name, fn) in enumerate(classifier_fns.items(), start=1):
+        print(f"\n[{i + 4}/12] {name}")
         test_accs, train_accs = fn(X, y_labels)
         results[name] = (test_accs, train_accs)
         print(f"  Test  accuracy: {test_accs.mean():.3f} ± {test_accs.std():.3f}")
         print(f"  Train accuracy: {train_accs.mean():.3f} ± {train_accs.std():.3f}")
 
     # ── 8. Plot comparison ────────────────────────────────────────────────────
-    print("\n[8/9] Plot Comparison")
+    print("\n[11/12] Plot Comparison")
     plot_accuracy_comparison(results, experiment_name,
                              out_path=f"classifier_comparison_{safe_name}.png")
 
     # ── 9. Feature Importance ─────────────────────────────────────────────────
-    print("\n[9/9] Feature Importance Overlap Analysis")
+    print("\n[12/12] Feature Importance Overlap Analysis")
     overlap_df, counts = feature_importance_analysis(X, y_labels, mz, safe_name)
     plot_spectrum_with_features(X_binned, mz_binned, y_labels, overlap_df, experiment_name,
                                 out_path=f"spectrum_features_{safe_name}.png")
