@@ -6,7 +6,7 @@ import seaborn as sns
 def plot_spectrum_with_features(X_binned, mz, y_labels, overlap_df, experiment_name, out_path):
     groups = sorted(np.unique(y_labels))
     n_groups = len(groups)
-    palette = sns.color_palette('muted', n_colors=n_groups)
+    palette = sns.color_palette('colorblind', n_colors=n_groups)
 
     fig, axes = plt.subplots(n_groups, 1, figsize=(14, 3 * n_groups), sharex=True)
 

@@ -137,7 +137,7 @@ def plot_accuracy_comparison(results, experiment_name, out_path):
     """
     names = list(results.keys())
     n = len(names)
-    palette = sns.color_palette('muted', n_colors=n)
+    palette = sns.color_palette('colorblind', n_colors=n)
 
     fig, (ax_top, ax_bot) = plt.subplots(
         2, 1, figsize=(max(10, n * 1.4), 10),
@@ -178,8 +178,9 @@ def plot_accuracy_comparison(results, experiment_name, out_path):
     train_means = [results[name][1].mean() for name in names]
     test_means  = [results[name][0].mean() for name in names]
 
-    ax_bot.bar(x - width / 2, train_means, width, label='Train', color='steelblue', alpha=0.7)
-    ax_bot.bar(x + width / 2, test_means,  width, label='Test',  color='coral',     alpha=0.7)
+    cb = sns.color_palette('colorblind')
+    ax_bot.bar(x - width / 2, train_means, width, label='Train', color=cb[0], alpha=0.7)
+    ax_bot.bar(x + width / 2, test_means,  width, label='Test',  color=cb[1], alpha=0.7)
 
     ax_bot.set_xticks(x)
     ax_bot.set_xticklabels(names, rotation=30, ha='right', fontsize=9)

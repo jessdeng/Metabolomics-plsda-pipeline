@@ -159,7 +159,7 @@ def run_variation_plot(X, y_labels, safe_name):
     per sample, grouped by class. Helps identify outlier samples.
     """
     groups = sorted(np.unique(y_labels))
-    palette = sns.color_palette('muted', n_colors=len(groups))
+    palette = sns.color_palette('colorblind', n_colors=len(groups))
 
     # Build a tidy dataframe: one row per (sample, feature)
     records = []
@@ -267,7 +267,7 @@ def run_cross_experiment_comparison():
 
         # Plot shared features
         fig, ax = plt.subplots(figsize=(10, 4))
-        ax.vlines(shared_df['mz'], 0, 1, color='steelblue', alpha=0.7, linewidth=1)
+        ax.vlines(shared_df['mz'], 0, 1, color=sns.color_palette('colorblind')[0], alpha=0.7, linewidth=1)
         ax.set_xlabel('m/z (Da)')
         ax.set_yticks([])
         ax.set_title(f'Shared Important Features\n{config.EXPERIMENT_A}  vs  {config.EXPERIMENT_B}')

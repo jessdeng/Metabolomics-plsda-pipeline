@@ -101,7 +101,7 @@ def plot_scores_3d(T, pls, y_labels, classes, experiment_name, out_path):
     pct_cov = SS / SS.sum() * 100
 
     fig = go.Figure()
-    palette = sns.color_palette('muted', n_colors=len(classes))
+    palette = sns.color_palette('colorblind', n_colors=len(classes))
 
     for i, group in enumerate(classes):
         mask = y_labels == group
