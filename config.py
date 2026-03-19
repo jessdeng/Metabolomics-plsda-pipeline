@@ -148,3 +148,28 @@ CV_FOLDS = 5
 # How many top features to take from each method when looking for overlap.
 # Features appearing in at least 2 of the 5 interpretable methods are reported.
 TOP_N_FEATURES = 50
+
+
+# ── Extras ─────────────────────────────────────────────────────────────────────
+# Settings for extras.py — run this file separately after run_analysis.py.
+
+# Summary report — saves a .txt file with settings, feature counts, and results
+RUN_SUMMARY_REPORT = True
+
+# Within-group variation plot — violin plot of feature intensities per group
+RUN_VARIATION_PLOT = True
+
+# Feature correlation heatmap — pairwise correlations between top VIP features
+RUN_CORRELATION_HEATMAP = True
+N_CORR_FEATURES = 20  # how many top VIP features to include
+
+# Cross-experiment comparison — finds overlapping top features between two
+# experiments. Both folders must be in the same directory as the .py files.
+# Set RUN_COMPARISON = False to skip.
+RUN_COMPARISON = False
+EXPERIMENT_A = 'your_experiment_folder_A'  # ← change to first experiment name
+EXPERIMENT_B = 'your_experiment_folder_B'  # ← change to second experiment name
+
+# Reproducibility report — runs classifiers twice with different random seeds
+# and reports how stable the top features are across runs. Slow on large datasets.
+RUN_REPRODUCIBILITY = False
