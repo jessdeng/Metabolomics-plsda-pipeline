@@ -4,7 +4,7 @@ import numpy as np
 import config
 from preprocessing_standard import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
 from pipeline_standard import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
-from classifier_comparison import (
+from classifier_comparison_standard import (
     RandomForest, svm_classify, gradient_boosting,
     logistic_regression, knn_classify, lda_classify, ridge_classify,
     plot_accuracy_comparison, feature_importance_analysis
@@ -128,7 +128,7 @@ def main():
     # ── 12. Feature Importance ────────────────────────────────────────────────
     print("\n[12/12] Feature Importance Overlap Analysis")
     overlap_df, counts = feature_importance_analysis(
-        X, y_labels, mz, safe_name,
+        X, y_labels, mz, safe_name, out_dir,
         top_n=config.TOP_N_FEATURES
     )
     plot_spectrum_with_features(X_binned, mz_binned, y_labels, overlap_df, experiment_name,

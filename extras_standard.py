@@ -32,7 +32,7 @@ from preprocessing_standard import (
     filter_low_variance, filter_low_abundance, preprocess
 )
 from pipeline_standard import compute_vip_1comp, fit_plsda
-from classifier_comparison import (
+from classifier_comparison_standard import (
     RandomForest, svm_classify, gradient_boosting,
     logistic_regression, knn_classify, lda_classify, ridge_classify,
     feature_importance_analysis
@@ -82,6 +82,7 @@ def run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=N
     lines = []
     lines.append("=" * 60)
     lines.append("AMBIENT MS METABOLOMICS TOOLKIT — RUN SUMMARY")
+    lines.append(f"Pipeline        : Standard (data-driven bin labels)")
     lines.append(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append("=" * 60)
 
@@ -144,9 +145,9 @@ def run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=N
         os.path.join(out_dir, f"spectrum_features_{safe_name}.png"),
         os.path.join(out_dir, f"feature_overlap_{safe_name}.csv"),
     ]
-    for f in output_patterns:
-        exists = "[ok]" if os.path.exists(f) else "[missing]"
-        lines.append(f"  {exists}  {f}")
+    for fpath in output_patterns:
+        exists = "[ok]" if os.path.exists(fpath) else "[missing]"
+        lines.append(f"  {exists}  {fpath}")
 
     lines.append("\n" + "=" * 60)
 
@@ -244,11 +245,11 @@ def run_cross_experiment_comparison(out_dir):
     X_b, y_b, mz_b, _ = _load_and_preprocess(config.EXPERIMENT_B)
 
     print("  Computing top features for experiment A...")
-    overlap_a, _ = feature_importance_analysis(X_a, y_a, mz_a, safe_a + '_comparison',
+    overlap_a, _ = feature_importance_analysis(X_a, y_a, mz_a, safe_a + '_comparison', out_dir,
                                                 top_n=config.TOP_N_FEATURES)
 
     print("  Computing top features for experiment B...")
-    overlap_b, _ = feature_importance_analysis(X_b, y_b, mz_b, safe_b + '_comparison',
+    overlap_b, _ = feature_importance_analysis(X_b, y_b, mz_b, safe_b + '_comparison', out_dir,
                                                 top_n=config.TOP_N_FEATURES)
 
     # Match features within 0.6 Da tolerance (slightly above bin width)
