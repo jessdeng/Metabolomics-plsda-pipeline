@@ -79,22 +79,26 @@ def filter_mass_range(X, mz, mz_min=100, mz_max=1000):
 def bin_features(X, mz, bin_width=0.5):
     """
     Bin m/z features into fixed-width bins by summing intensities.
-    Bin centers are the true geometric centers of each bin (bin_edge + bin_width/2).
+    Each bin is labeled with the mean of the actual m/z values that fell into it —
+    i.e. where the signal genuinely was, not an arithmetic midpoint.
 
-    Note: preprocessing.py applies a -0.05 Da offset to match MetaboAnalyst's
-    internal .2/.7 labeling convention. That offset has no physical basis — it is
-    a cosmetic artifact of MetaboAnalyst's output format. This version labels bins
-    correctly as the midpoint of each window.
+    This differs from preprocessing.py, which labels bins at a fixed arithmetic
+    center shifted by -0.05 Da to match MetaboAnalyst's output convention.
+    That label has no physical meaning. This version gives you the real m/z.
     """
     bin_edges = np.arange(mz.min(), mz.max() + bin_width, bin_width)
-    bin_labels = bin_edges[:-1] + bin_width / 2
 
-    X_binned = np.zeros((X.shape[0], len(bin_labels)))
+    n_bins = len(bin_edges) - 1
+    X_binned  = np.zeros((X.shape[0], n_bins))
+    bin_labels = np.zeros(n_bins)
 
     for i, (low, high) in enumerate(zip(bin_edges[:-1], bin_edges[1:])):
         mask = (mz >= low) & (mz < high)
         if mask.any():
-            X_binned[:, i] = X[:, mask].sum(axis=1)
+            X_binned[:, i]  = X[:, mask].sum(axis=1)
+            bin_labels[i]   = mz[mask].mean()   # mean of actual m/z values in this bin
+        else:
+            bin_labels[i]   = (low + high) / 2  # fallback for empty bins
 
     non_empty = X_binned.sum(axis=0) > 0
     return X_binned[:, non_empty], bin_labels[non_empty]
