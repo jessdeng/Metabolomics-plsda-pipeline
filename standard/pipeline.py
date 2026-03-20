@@ -1,17 +1,14 @@
 """
-MetaboAnalyst Pipeline — rebuilt in Python
-==========================================
-Pipeline: raw spectra → bin → filter → sum norm → log10 → auto-scale → PLS-DA → VIP scores
+Standard Pipeline — no MetaboAnalyst offset
+============================================
+Identical to metaboanalyst_pipeline.py except it imports from preprocessing_standard,
+which labels bins at their true geometric centers (no -0.05 Da offset).
 
-Notes:
-  - 8 components are used for the scores plot and cross-validation.
-  - 1 component is used for VIP scores, because Python's PLS algorithm
-    matches MetaboAnalyst exactly at component 1 but diverges at higher
-    components due to internal algorithm differences between scikit-learn
-    and R's ropls package.
+Use this version when MetaboAnalyst replication is not the goal.
+Use metaboanalyst_pipeline.py when you need output to match MetaboAnalyst exactly.
 
 Usage:
-    python run_analysis.py
+    python run_analysis_standard.py
 """
 
 import os
@@ -27,7 +24,7 @@ from sklearn.cross_decomposition import PLSRegression
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
-from preprocessing import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
+from standard.preprocessing import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 N_COMPONENTS = 8   # number of PLS-DA components for scores plot and cross-validation

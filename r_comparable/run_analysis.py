@@ -1,18 +1,23 @@
 import os
+import sys
+# Ensure repo root is on the path so config.py and sibling packages are found
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import os
 import numpy as np
 
 import config
-from preprocessing import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
-from metaboanalyst_pipeline import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
-from classifier_comparison import (
+from r_comparable.preprocessing import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
+from r_comparable.pipeline import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
+from shared.classifier_comparison import (
     RandomForest, svm_classify, gradient_boosting,
     logistic_regression, knn_classify, lda_classify, ridge_classify,
     plot_accuracy_comparison, feature_importance_analysis
 )
-from visualization import plot_spectrum_with_features
+from shared.visualization import plot_spectrum_with_features
 
 # ── Load settings from config.py ──────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXPERIMENT = config.EXPERIMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -22,7 +27,7 @@ def main():
     safe_name       = experiment_name.replace(' ', '_').replace(':', '')
 
     # ── Output directory ──────────────────────────────────────────────────────
-    out_dir = os.path.join(BASE_DIR, 'output_metaboanalyst')
+    out_dir = os.path.join(BASE_DIR, 'output_r_comparable')
     os.makedirs(out_dir, exist_ok=True)
 
     assert os.path.isdir(experiment_dir), (

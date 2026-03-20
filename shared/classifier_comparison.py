@@ -35,7 +35,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
 
-from metaboanalyst_pipeline import compute_vip_1comp
+from r_comparable.pipeline import compute_vip_1comp
 
 
 # ── Shared cross-validation runner ────────────────────────────────────────────

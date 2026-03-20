@@ -35,7 +35,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
 
-from pipeline_standard import compute_vip_1comp
+from standard.pipeline import compute_vip_1comp
 
 
 # ── Shared cross-validation runner ────────────────────────────────────────────

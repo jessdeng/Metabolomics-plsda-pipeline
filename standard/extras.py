@@ -1,3 +1,8 @@
+import os
+import sys
+# Ensure repo root is on the path so config.py and sibling packages are found
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 """
 extras.py — Optional Analysis Extras
 ======================================
@@ -27,18 +32,18 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
 
 import config
-from preprocessing import (
+from standard.preprocessing import (
     load_experiment, bin_features,
     filter_low_variance, filter_low_abundance, preprocess
 )
-from metaboanalyst_pipeline import compute_vip_1comp, fit_plsda
-from classifier_comparison import (
+from standard.pipeline import compute_vip_1comp, fit_plsda
+from shared.classifier_comparison_standard import (
     RandomForest, svm_classify, gradient_boosting,
     logistic_regression, knn_classify, lda_classify, ridge_classify,
     feature_importance_analysis
 )
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # ── Shared data loading ────────────────────────────────────────────────────────
@@ -82,7 +87,7 @@ def run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=N
     lines = []
     lines.append("=" * 60)
     lines.append("AMBIENT MS METABOLOMICS TOOLKIT — RUN SUMMARY")
-    lines.append(f"Pipeline        : MetaboAnalyst-compatible")
+    lines.append(f"Pipeline        : Standard (data-driven bin labels)")
     lines.append(f"Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append("=" * 60)
 
@@ -343,7 +348,7 @@ def main():
     safe_name = experiment_name.replace(' ', '_').replace(':', '')
 
     # ── Output directory ──────────────────────────────────────────────────────
-    out_dir = os.path.join(BASE_DIR, 'output_metaboanalyst')
+    out_dir = os.path.join(BASE_DIR, 'output_standard')
     os.makedirs(out_dir, exist_ok=True)
 
     print(f"\nLoading data for: {experiment_name!r}")

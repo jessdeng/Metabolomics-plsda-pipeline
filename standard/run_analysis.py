@@ -1,18 +1,23 @@
 import os
+import sys
+# Ensure repo root is on the path so config.py and sibling packages are found
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import os
 import numpy as np
 
 import config
-from preprocessing_standard import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
-from pipeline_standard import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
-from classifier_comparison_standard import (
+from standard.preprocessing import load_experiment, bin_features, filter_low_variance, filter_low_abundance, preprocess
+from standard.pipeline import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
+from shared.classifier_comparison_standard import (
     RandomForest, svm_classify, gradient_boosting,
     logistic_regression, knn_classify, lda_classify, ridge_classify,
     plot_accuracy_comparison, feature_importance_analysis
 )
-from visualization import plot_spectrum_with_features
+from shared.visualization import plot_spectrum_with_features
 
 # ── Load settings from config.py ──────────────────────────────────────────────
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXPERIMENT = config.EXPERIMENT
 # ──────────────────────────────────────────────────────────────────────────────
 
