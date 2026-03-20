@@ -12,7 +12,7 @@ For detailed notes on what each step does, why the defaults were chosen, and how
 
 **If you are not trying to match R package PLS-DA output, use the standard version.**
 
-| | R-compatible | Standard |
+| | R-comparable | Standard |
 |---|---|---|
 | **Run with** | `python -m r_comparable.run_analysis` | `python -m standard.run_analysis` |
 | **Extras with** | `python -m r_comparable.extras` | `python -m standard.extras` |
