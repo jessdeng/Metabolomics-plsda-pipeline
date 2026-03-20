@@ -73,7 +73,7 @@ def _load_and_preprocess(experiment_name):
 
 # ── 1. Summary Report ─────────────────────────────────────────────────────────
 
-def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
+def run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=None):
     """
     Save a plain text summary of the pipeline settings and results.
     Accepts pre-computed classifier_results dict {name: (test_accs, train_accs)}
@@ -138,11 +138,11 @@ def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
 
     lines.append("\n── Output Files ────────────────────────────────────────")
     output_patterns = [
-        f"plsda_scores_3d_{safe_name}.html",
-        f"vip_scores_{safe_name}.png",
-        f"classifier_comparison_{safe_name}.png",
-        f"spectrum_features_{safe_name}.png",
-        f"feature_overlap_{safe_name}.csv",
+        os.path.join(out_dir, f"plsda_scores_3d_{safe_name}.html"),
+        os.path.join(out_dir, f"vip_scores_{safe_name}.png"),
+        os.path.join(out_dir, f"classifier_comparison_{safe_name}.png"),
+        os.path.join(out_dir, f"spectrum_features_{safe_name}.png"),
+        os.path.join(out_dir, f"feature_overlap_{safe_name}.csv"),
     ]
     for f in output_patterns:
         exists = "[ok]" if os.path.exists(f) else "[missing]"
@@ -150,7 +150,7 @@ def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
 
     lines.append("\n" + "=" * 60)
 
-    out_path = f"summary_{safe_name}.txt"
+    out_path = os.path.join(out_dir, f"summary_{safe_name}.txt")
     with open(out_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines))
     print(f"  Saved → {out_path}")
@@ -158,7 +158,7 @@ def run_summary_report(X, y_labels, mz, safe_name, classifier_results=None):
 
 # ── 2. Within-Group Variation Plot ────────────────────────────────────────────
 
-def run_variation_plot(X, y_labels, safe_name):
+def run_variation_plot(X, y_labels, safe_name, out_dir):
     """
     Box plot showing the distribution of preprocessed feature intensities
     per sample, grouped by class. Helps identify outlier samples.
@@ -181,7 +181,7 @@ def run_variation_plot(X, y_labels, safe_name):
     plt.xticks(rotation=30, ha='right')
     plt.tight_layout()
 
-    out_path = f"variation_plot_{safe_name}.png"
+    out_path = os.path.join(out_dir, f"variation_plot_{safe_name}.png")
     plt.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"  Saved → {out_path}")
@@ -189,7 +189,7 @@ def run_variation_plot(X, y_labels, safe_name):
 
 # ── 3. Feature Correlation Heatmap ────────────────────────────────────────────
 
-def run_correlation_heatmap(X, y_labels, mz, safe_name):
+def run_correlation_heatmap(X, y_labels, mz, safe_name, out_dir):
     """
     Pearson correlation heatmap of the top N VIP features.
     Highly correlated features may represent the same compound at different
@@ -221,7 +221,7 @@ def run_correlation_heatmap(X, y_labels, mz, safe_name):
     plt.yticks(fontsize=7)
     plt.tight_layout()
 
-    out_path = f"correlation_heatmap_{safe_name}.png"
+    out_path = os.path.join(out_dir, f"correlation_heatmap_{safe_name}.png")
     plt.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"  Saved → {out_path}")
@@ -229,7 +229,7 @@ def run_correlation_heatmap(X, y_labels, mz, safe_name):
 
 # ── 4. Cross-Experiment Comparison ────────────────────────────────────────────
 
-def run_cross_experiment_comparison():
+def run_cross_experiment_comparison(out_dir):
     """
     Loads two experiments, runs feature importance on each, and identifies
     m/z features that appear in the top features of both experiments.
@@ -265,7 +265,7 @@ def run_cross_experiment_comparison():
 
     if shared:
         shared_df = pd.DataFrame(shared).sort_values('n_methods_A', ascending=False)
-        out_path = f"comparison_{safe_a}_vs_{safe_b}.csv"
+        out_path = os.path.join(out_dir, f"comparison_{safe_a}_vs_{safe_b}.csv")
         shared_df.to_csv(out_path, index=False, encoding='utf-8')
         print(f"  Shared features found: {len(shared_df)}")
         print(f"  Saved → {out_path}")
@@ -278,7 +278,7 @@ def run_cross_experiment_comparison():
         ax.set_title(f'Shared Important Features\n{config.EXPERIMENT_A}  vs  {config.EXPERIMENT_B}')
         ax.set_xlim(config.MZ_MIN, config.MZ_MAX)
         plt.tight_layout()
-        plot_path = f"comparison_{safe_a}_vs_{safe_b}.png"
+        plot_path = os.path.join(out_dir, f"comparison_{safe_a}_vs_{safe_b}.png")
         plt.savefig(plot_path, dpi=150, bbox_inches='tight')
         plt.close()
         print(f"  Saved → {plot_path}")
@@ -288,7 +288,7 @@ def run_cross_experiment_comparison():
 
 # ── 5. Reproducibility Report ─────────────────────────────────────────────────
 
-def run_reproducibility_report(X, y_labels, mz, safe_name):
+def run_reproducibility_report(X, y_labels, mz, safe_name, out_dir):
     """
     Runs Random Forest and Logistic Regression twice with different random seeds
     and reports what fraction of top features are consistent across both runs.
@@ -330,7 +330,7 @@ def run_reproducibility_report(X, y_labels, mz, safe_name):
         print(f"  {name:22s}  {stability:.1f}% of top {top_n} features stable across seeds")
 
     df = pd.DataFrame(results)
-    out_path = f"reproducibility_{safe_name}.csv"
+    out_path = os.path.join(out_dir, f"reproducibility_{safe_name}.csv")
     df.to_csv(out_path, index=False, encoding='utf-8')
     print(f"  Saved → {out_path}")
 
@@ -341,13 +341,17 @@ def main():
     experiment_name = config.EXPERIMENT.strip()
     safe_name = experiment_name.replace(' ', '_').replace(':', '')
 
+    # ── Output directory ──────────────────────────────────────────────────────
+    out_dir = os.path.join(BASE_DIR, 'output_standard')
+    os.makedirs(out_dir, exist_ok=True)
+
     print(f"\nLoading data for: {experiment_name!r}")
     X, y_labels, mz, X_filt_raw = _load_and_preprocess(experiment_name)
     print(f"  {X.shape[0]} samples, {X.shape[1]} features")
 
     # ── Load or compute classifier results ───────────────────────────────────
     classifier_results = {}
-    results_path = f"classifier_results_{safe_name}.npz"
+    results_path = os.path.join(out_dir, f"classifier_results_{safe_name}.npz")
     if config.RUN_SUMMARY_REPORT:
         if os.path.exists(results_path):
             print(f"\n[Extras] Loading saved classifier results from {results_path}")
@@ -374,25 +378,25 @@ def main():
 
     if config.RUN_SUMMARY_REPORT:
         print("\n[Extras] Summary Report")
-        run_summary_report(X, y_labels, mz, safe_name, classifier_results=classifier_results)
+        run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=classifier_results)
 
     if config.RUN_VARIATION_PLOT:
         print("\n[Extras] Within-Group Variation Plot")
-        run_variation_plot(X, y_labels, safe_name)
+        run_variation_plot(X, y_labels, safe_name, out_dir)
 
     if config.RUN_CORRELATION_HEATMAP:
         print("\n[Extras] Feature Correlation Heatmap")
-        run_correlation_heatmap(X, y_labels, mz, safe_name)
+        run_correlation_heatmap(X, y_labels, mz, safe_name, out_dir)
 
     if config.RUN_COMPARISON:
         print(f"\n[Extras] Cross-Experiment Comparison")
         print(f"  A: {config.EXPERIMENT_A!r}")
         print(f"  B: {config.EXPERIMENT_B!r}")
-        run_cross_experiment_comparison()
+        run_cross_experiment_comparison(out_dir)
 
     if config.RUN_REPRODUCIBILITY:
         print("\n[Extras] Reproducibility Report")
-        run_reproducibility_report(X, y_labels, mz, safe_name)
+        run_reproducibility_report(X, y_labels, mz, safe_name, out_dir)
 
     print("\nDone.")
 

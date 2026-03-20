@@ -21,6 +21,10 @@ def main():
     experiment_name = EXPERIMENT.strip()
     safe_name       = experiment_name.replace(' ', '_').replace(':', '')
 
+    # ── Output directory ──────────────────────────────────────────────────────
+    out_dir = os.path.join(BASE_DIR, 'output_standard')
+    os.makedirs(out_dir, exist_ok=True)
+
     assert os.path.isdir(experiment_dir), (
         f"Experiment folder not found: {experiment_dir!r}\n"
         f"Available options: {[d for d in os.listdir(BASE_DIR) if os.path.isdir(os.path.join(BASE_DIR, d)) and not d.startswith('.')]}"
@@ -79,9 +83,9 @@ def main():
     print(f"\n[6/12] Computing VIP scores (1 component, top {config.N_TOP_VIP})")
     vip = compute_vip_1comp(X, y_labels)
     plot_scores_3d(T, pls, y_labels, classes, experiment_name,
-                   out_path=f"plsda_scores_3d_{safe_name}.html")
+                   out_path=os.path.join(out_dir, f"plsda_scores_3d_{safe_name}.html"))
     plot_vip(vip, mz, X_filt_raw, y_labels, config.N_TOP_VIP, experiment_name,
-             out_path=f"vip_scores_{safe_name}.png")
+             out_path=os.path.join(out_dir, f"vip_scores_{safe_name}.png"))
 
     # ── 7–11. Classifiers ─────────────────────────────────────────────────────
     all_classifiers = {
@@ -106,7 +110,7 @@ def main():
             step += 1
 
     # ── Save classifier results for reuse in extras.py ───────────────────────
-    results_path = f"classifier_results_{safe_name}.npz"
+    results_path = os.path.join(out_dir, f"classifier_results_{safe_name}.npz")
     np.savez(results_path, **{
         f"{name}__test":  test_accs
         for name, (test_accs, _) in results.items()
@@ -119,7 +123,7 @@ def main():
     # ── 11. Plot comparison ───────────────────────────────────────────────────
     print("\n[11/12] Plot Comparison")
     plot_accuracy_comparison(results, experiment_name,
-                             out_path=f"classifier_comparison_{safe_name}.png")
+                             out_path=os.path.join(out_dir, f"classifier_comparison_{safe_name}.png"))
 
     # ── 12. Feature Importance ────────────────────────────────────────────────
     print("\n[12/12] Feature Importance Overlap Analysis")
@@ -128,7 +132,7 @@ def main():
         top_n=config.TOP_N_FEATURES
     )
     plot_spectrum_with_features(X_binned, mz_binned, y_labels, overlap_df, experiment_name,
-                                out_path=f"spectrum_features_{safe_name}.png")
+                                out_path=os.path.join(out_dir, f"spectrum_features_{safe_name}.png"))
 
     print("\nDone.")
 
