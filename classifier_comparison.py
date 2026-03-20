@@ -1,3 +1,4 @@
+import os
 """
 Classifier Comparison for Mass Spectrometry Metabolomics Data
 =============================================================
@@ -197,7 +198,7 @@ def plot_accuracy_comparison(results, experiment_name, out_path):
 
 # ── Feature importance overlap ────────────────────────────────────────────────
 
-def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
+def feature_importance_analysis(X, y_labels, mz, safe_name, out_dir, top_n=50):
     """
     Fits RF, SVM, GB, LR, and PLS-DA (VIP) on the full dataset and finds
     m/z features that appear in the top 50 of at least 2 methods.
@@ -259,7 +260,8 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, top_n=50):
         'n_methods':       [counts[idx] for idx in overlap_list],
     }).sort_values('n_methods', ascending=False)
 
-    overlap_df.to_csv(f'feature_overlap_{safe_name}.csv', index=False, encoding='utf-8')
-    print(f"  Saved → feature_overlap_{safe_name}.csv")
+    csv_path = os.path.join(out_dir, f'feature_overlap_{safe_name}.csv')
+    overlap_df.to_csv(csv_path, index=False, encoding='utf-8')
+    print(f"  Saved → {csv_path}")
 
     return overlap_df, counts

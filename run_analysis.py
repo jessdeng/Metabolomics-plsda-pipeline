@@ -128,7 +128,7 @@ def main():
     # ── 12. Feature Importance ────────────────────────────────────────────────
     print("\n[12/12] Feature Importance Overlap Analysis")
     overlap_df, counts = feature_importance_analysis(
-        X, y_labels, mz, safe_name,
+        X, y_labels, mz, safe_name, out_dir,
         top_n=config.TOP_N_FEATURES
     )
     plot_spectrum_with_features(X_binned, mz_binned, y_labels, overlap_df, experiment_name,
