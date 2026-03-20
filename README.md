@@ -8,6 +8,22 @@ For detailed notes on what each step does, why the defaults were chosen, and how
 
 ---
 
+## Which version should I use?
+
+This toolkit has two parallel pipelines. **If you are not trying to replicate MetaboAnalyst, use the standard version.**
+
+| | MetaboAnalyst version | Standard version |
+|---|---|---|
+| **Run with** | `python run_analysis.py` | `python run_analysis_standard.py` |
+| **Extras with** | `python extras.py` | `python extras_standard.py` |
+| **Outputs to** | `output_metaboanalyst/` | `output_standard/` |
+| **Bin labels** | Offset by -0.05 Da to match MetaboAnalyst's internal convention | Mean of actual m/z values within each bin — physically meaningful |
+| **Use when** | You need results to match MetaboAnalyst exactly for validation or comparison | You want accurate m/z labels for database lookup and reporting |
+
+The classifier accuracies, VIP scores, and PLS-DA plots are numerically identical between the two versions — the models only see the binned intensity matrix, not the m/z labels. The difference is in the reported m/z for each important feature, which matters when identifying candidate compounds.
+
+---
+
 ## Setup Instructions
 
 ### Step 1 — Install Python
@@ -94,7 +110,13 @@ EXPERIMENT = 'your_experiment_folder'
 ```
 
 3. Make sure your experiment folder is in the **same directory** as the `.py` files
-4. Run:
+4. Run the standard version:
+
+```bash
+python run_analysis_standard.py
+```
+
+Or the MetaboAnalyst-compatible version:
 
 ```bash
 python run_analysis.py
@@ -105,6 +127,8 @@ The terminal will print progress as each step runs. See [NOTES.md](NOTES.md) for
 ---
 
 ## Output Files
+
+All outputs are saved to `output_standard/` or `output_metaboanalyst/` depending on which version you run.
 
 | File | Description |
 |------|-------------|
