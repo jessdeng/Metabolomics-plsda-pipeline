@@ -11,7 +11,6 @@ Classifiers:
     - Support Vector Machine (linear kernel)
     - Gradient Boosting
     - Logistic Regression
-    - K-Nearest Neighbors
     - Linear Discriminant Analysis
     - Ridge Regression
 
@@ -29,7 +28,6 @@ from collections import Counter
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression, RidgeClassifier
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
@@ -99,14 +97,6 @@ def logistic_regression(X, y_labels, n_splits=5, random_state=42):
     y = _encode(y_labels)
     return _run_cv(
         lambda: LogisticRegression(max_iter=1000, random_state=random_state),
-        X, y, n_splits, random_state
-    )
-
-
-def knn_classify(X, y_labels, n_splits=5, random_state=42):
-    y = _encode(y_labels)
-    return _run_cv(
-        lambda: KNeighborsClassifier(n_neighbors=5),
         X, y, n_splits, random_state
     )
 
@@ -203,9 +193,7 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, out_dir, top_n=50):
     Fits RF, SVM, GB, LR, and PLS-DA (VIP) on the full dataset and finds
     m/z features that appear in the top 50 of at least 2 methods.
 
-    Note: KNN is excluded here because it is distance-based and does not
-    produce interpretable per-feature importance scores. It contributes to
-    the accuracy comparison only. Ridge Regression is included via its
+    Ridge Regression is included via its
     linear coefficients.
     """
     le = LabelEncoder()

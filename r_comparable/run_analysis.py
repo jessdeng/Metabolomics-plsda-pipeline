@@ -11,7 +11,7 @@ from r_comparable.preprocessing import load_experiment, bin_features, filter_low
 from r_comparable.pipeline import compute_vip_1comp, fit_plsda, plot_scores_3d, plot_vip
 from shared.classifier_comparison import (
     RandomForest, svm_classify, gradient_boosting,
-    logistic_regression, knn_classify, lda_classify, ridge_classify,
+    logistic_regression, lda_classify, ridge_classify,
     plot_accuracy_comparison, feature_importance_analysis
 )
 from shared.visualization import plot_spectrum_with_features
@@ -98,7 +98,6 @@ def main():
         'SVM':                 (config.USE_SVM,                 svm_classify),
         'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
         'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
-        'KNN':                 (config.USE_KNN,                 knn_classify),
         'LDA':                 (config.USE_LDA,                 lda_classify),
         'Ridge':               (config.USE_RIDGE,               ridge_classify),
     }

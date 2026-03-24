@@ -26,7 +26,6 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression, RidgeClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import accuracy_score
@@ -39,7 +38,7 @@ from standard.preprocessing import (
 from standard.pipeline import compute_vip_1comp, fit_plsda
 from shared.classifier_comparison_standard import (
     RandomForest, svm_classify, gradient_boosting,
-    logistic_regression, knn_classify, lda_classify, ridge_classify,
+    logistic_regression, lda_classify, ridge_classify,
     feature_importance_analysis
 )
 
@@ -126,7 +125,6 @@ def run_summary_report(X, y_labels, mz, safe_name, out_dir, classifier_results=N
         'SVM':                 (config.USE_SVM,                 svm_classify),
         'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
         'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
-        'KNN':                 (config.USE_KNN,                 knn_classify),
         'LDA':                 (config.USE_LDA,                 lda_classify),
         'Ridge':               (config.USE_RIDGE,               ridge_classify),
     }
@@ -373,7 +371,6 @@ def main():
                 'SVM':                 (config.USE_SVM,                 svm_classify),
                 'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
                 'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
-                'KNN':                 (config.USE_KNN,                 knn_classify),
                 'LDA':                 (config.USE_LDA,                 lda_classify),
                 'Ridge':               (config.USE_RIDGE,               ridge_classify),
             }

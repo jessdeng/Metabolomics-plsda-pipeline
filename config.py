@@ -133,7 +133,6 @@ USE_RANDOM_FOREST       = True
 USE_SVM                 = True
 USE_GRADIENT_BOOSTING   = True
 USE_LOGISTIC_REGRESSION = True
-USE_KNN                 = True
 USE_LDA                 = True
 USE_RIDGE               = True
 
