@@ -67,13 +67,12 @@ The output is a dot plot of the top 30 features alongside a heatmap showing the 
 
 ### 7. Classifier Comparison
 
-Seven machine learning classifiers are trained and evaluated on your data:
+Six machine learning classifiers are trained and evaluated on your data:
 
 - **Random Forest** — builds many decision trees on random subsets of the data and averages their predictions. Robust to noise and works well with high-dimensional data like MS.
 - **SVM (Support Vector Machine)** — finds the boundary that best separates your groups in feature space. The linear kernel is used here, which is standard for metabolomics.
 - **Gradient Boosting** — builds trees sequentially, each one correcting the errors of the previous. Often very accurate but can overfit.
 - **Logistic Regression** — a simple linear model that predicts group membership. Fast and interpretable. A good baseline.
-- **KNN (K-Nearest Neighbours)** — classifies each sample based on what group its closest neighbours belong to. Simple and intuitive — if your groups are well-separated in feature space, KNN will do well.
 - **LDA (Linear Discriminant Analysis)** — conceptually similar to PLS-DA. Finds linear combinations of features that best separate groups. A classical approach in metabolomics.
 - **Ridge Regression** — a regularized linear model that produces clean per-feature coefficients. Stable, fast, and well-suited to high-dimensional correlated data like MS. A strong choice when the primary question is which m/z values matter most.
 
@@ -92,7 +91,6 @@ The plot has two panels:
 
 Six interpretable methods rank all m/z features by how important they were to group separation: Random Forest, SVM, Gradient Boosting, Logistic Regression, Ridge Regression, and PLS-DA VIP. This step finds features that appear in the top 50 of at least 2 of these 6 methods.
 
-> Note: KNN is not included here because it is distance-based and does not produce interpretable per-feature importance scores. It contributes to the accuracy comparison only.
 
 The output is saved as a CSV file with the following columns:
 

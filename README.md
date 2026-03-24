@@ -1,6 +1,6 @@
 # Ambient MS Metabolomics Toolkit
 
-A Python pipeline for ambient MS metabolomics data. Includes a full classifier comparison (7 ML models), ensemble feature importance voting, and cross-validated PLS-DA. Two parallel pipelines are provided — one with bin labeling compatible with R-based PLS-DA packages, one with data-driven bin labels for accurate compound identification.
+A Python pipeline for ambient MS metabolomics data. Includes a full classifier comparison (6 ML models), ensemble feature importance voting, and cross-validated PLS-DA. Two parallel pipelines are provided — one with bin labeling compatible with R-based PLS-DA packages, one with data-driven bin labels for accurate compound identification.
 
 For detailed notes on what each step does, why the defaults were chosen, and how to interpret the outputs, see [NOTES.md](NOTES.md).
 
