@@ -176,12 +176,12 @@ RUN_REPRODUCIBILITY = False
 # VIP-filtered classifier comparison — runs all classifiers on only features
 # with VIP > threshold. Connects the PLS-DA and ML steps, reduces overfitting
 # caused by high-dimensional MS data. Recommended for small datasets.
-RUN_VIP_FILTERED_CLASSIFIERS = True
-VIP_FILTER_THRESHOLD = 1.5  # keep features with VIP > this value
+RUN_VIP_FILTERED_CLASSIFIERS = False
+VIP_FILTER_THRESHOLD = 1.0  # keep features with VIP > this value
 
 # Permutation test — shuffles class labels 100 times to verify that
 # classification accuracy is significantly above chance. The most rigorous
 # validation for small MS datasets. Slow — allow ~2-5 minutes.
 # p < 0.05 confirms the model is learning real signal, not memorising noise.
-RUN_PERMUTATION_TEST = True
-N_PERMUTATIONS = 1000
+RUN_PERMUTATION_TEST = False
+N_PERMUTATIONS = 100
