@@ -339,6 +339,139 @@ def run_reproducibility_report(X, y_labels, mz, safe_name, out_dir):
     print(f"  Saved → {out_path}")
 
 
+# ── 6. VIP-Based Feature Selection ───────────────────────────────────────────
+
+def run_vip_filtered_classifiers(X, y_labels, mz, safe_name, out_dir, vip_threshold=1.0):
+    """
+    Connects the PLS-DA and ML steps by using VIP scores to gate which
+    features enter the classifiers. Reduces dimensionality to biologically
+    meaningful features, addressing overfitting in high-dimensional MS data.
+
+    Runs all enabled classifiers on VIP-filtered data and compares accuracy
+    to the full-feature results.
+    """
+    from shared.classifier_comparison_standard import (
+        RandomForest, svm_classify, gradient_boosting,
+        logistic_regression, lda_classify, ridge_classify,
+        plot_accuracy_comparison
+    )
+
+    # Compute VIP and filter
+    vip = compute_vip_1comp(X, y_labels)
+    keep = vip > vip_threshold
+    n_kept = keep.sum()
+    n_total = len(keep)
+
+    print(f"  VIP filter (threshold={vip_threshold}): keeping {n_kept} of {n_total} features")
+
+    if n_kept < 2:
+        print("  [warning] Fewer than 2 features passed VIP filter — skipping.")
+        return
+
+    X_filt = X[:, keep]
+
+    # Run classifiers on filtered data
+    classifier_fns = {
+        'Random Forest':       (config.USE_RANDOM_FOREST,       RandomForest),
+        'SVM':                 (config.USE_SVM,                 svm_classify),
+        'Gradient Boosting':   (config.USE_GRADIENT_BOOSTING,   gradient_boosting),
+        'Logistic Regression': (config.USE_LOGISTIC_REGRESSION, logistic_regression),
+        'LDA':                 (config.USE_LDA,                 lda_classify),
+        'Ridge':               (config.USE_RIDGE,               ridge_classify),
+    }
+
+    results = {}
+    for name, (enabled, fn) in classifier_fns.items():
+        if enabled:
+            print(f"    {name}...")
+            results[name] = fn(X_filt, y_labels, n_splits=config.CV_FOLDS)
+
+    # Plot
+    plot_path = os.path.join(out_dir, f"vip_filtered_classifiers_{safe_name}.png")
+    plot_accuracy_comparison(results, f"{config.EXPERIMENT} (VIP-filtered)", plot_path)
+
+    # Print comparison summary
+    print(f"\n  Results on VIP-filtered features ({n_kept} features, VIP > {vip_threshold}):")
+    for name, (test_accs, train_accs) in results.items():
+        gap = train_accs.mean() - test_accs.mean()
+        print(f"    {name:22s}  test={test_accs.mean():.3f}  train={train_accs.mean():.3f}  gap={gap:.3f}")
+
+    return results
+
+
+# ── 7. Permutation Testing ────────────────────────────────────────────────────
+
+def run_permutation_test(X, y_labels, safe_name, out_dir,
+                         n_permutations=100, random_state=42):
+    """
+    Validates that classification is significantly above chance by shuffling
+    class labels n_permutations times and comparing to real accuracy.
+
+    A p-value < 0.05 means the model is learning real signal, not memorising
+    noise. This is the most rigorous check for small MS datasets.
+
+    Uses Random Forest as the reference classifier (typically best performer).
+    Results are saved as a plot and printed to console.
+    """
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.model_selection import StratifiedKFold
+    from sklearn.metrics import accuracy_score
+
+    le = LabelEncoder()
+    y = le.fit_transform(y_labels)
+    cv = StratifiedKFold(n_splits=config.CV_FOLDS, shuffle=True,
+                         random_state=random_state)
+
+    def _cv_score(y_use):
+        accs = []
+        for train_idx, test_idx in cv.split(X, y_use):
+            clf = RandomForestClassifier(n_estimators=100, random_state=random_state)
+            clf.fit(X[train_idx], y_use[train_idx])
+            accs.append(accuracy_score(y_use[test_idx], clf.predict(X[test_idx])))
+        return np.mean(accs)
+
+    # Real accuracy
+    real_score = _cv_score(y)
+    print(f"  Real accuracy (Random Forest, {config.CV_FOLDS}-fold CV): {real_score:.3f}")
+
+    # Permuted accuracies
+    rng = np.random.default_rng(random_state)
+    perm_scores = []
+    for i in range(n_permutations):
+        y_perm = rng.permutation(y)
+        perm_scores.append(_cv_score(y_perm))
+        if (i + 1) % 25 == 0:
+            print(f"    Permutation {i + 1}/{n_permutations}...")
+
+    perm_scores = np.array(perm_scores)
+    pvalue = (np.sum(perm_scores >= real_score) + 1) / (n_permutations + 1)
+
+    print(f"  Permutation mean accuracy: {perm_scores.mean():.3f} ± {perm_scores.std():.3f}")
+    print(f"  p-value: {pvalue:.4f} {'✓ significant' if pvalue < 0.05 else '✗ not significant'}")
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 4))
+    ax.hist(perm_scores, bins=20, color=sns.color_palette('colorblind')[0],
+            alpha=0.7, label=f'Permuted ({n_permutations} runs)')
+    ax.axvline(real_score, color='red', linewidth=2,
+               label=f'Real accuracy = {real_score:.3f}')
+    ax.axvline(perm_scores.mean(), color='grey', linewidth=1,
+               linestyle='--', label=f'Permutation mean = {perm_scores.mean():.3f}')
+    ax.set_xlabel('Cross-validated Accuracy')
+    ax.set_ylabel('Count')
+    ax.set_title(f'Permutation Test — {config.EXPERIMENT}\np = {pvalue:.4f}')
+    ax.legend(fontsize=9)
+    plt.tight_layout()
+
+    out_path = os.path.join(out_dir, f"permutation_test_{safe_name}.png")
+    plt.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"  Saved → {out_path}")
+
+    return real_score, perm_scores, pvalue
+
+
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -400,6 +533,20 @@ def main():
     if config.RUN_REPRODUCIBILITY:
         print("\n[Extras] Reproducibility Report")
         run_reproducibility_report(X, y_labels, mz, safe_name, out_dir)
+
+    if config.RUN_VIP_FILTERED_CLASSIFIERS:
+        print("\n[Extras] VIP-Filtered Classifier Comparison")
+        run_vip_filtered_classifiers(
+            X, y_labels, mz, safe_name, out_dir,
+            vip_threshold=config.VIP_FILTER_THRESHOLD
+        )
+
+    if config.RUN_PERMUTATION_TEST:
+        print(f"\n[Extras] Permutation Test ({config.N_PERMUTATIONS} permutations)")
+        run_permutation_test(
+            X, y_labels, safe_name, out_dir,
+            n_permutations=config.N_PERMUTATIONS
+        )
 
     print("\nDone.")
 
