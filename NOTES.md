@@ -94,24 +94,46 @@ Six interpretable methods rank all m/z features by how important they were to gr
 
 The output is saved as a CSV file with the following columns:
 
+**Feature identification and ensemble counts**
+
 | Column | What it means | How to use it |
 |--------|--------------|---------------|
 | `mz` | The m/z value of the feature | Use this to look up the feature in your data or a database |
-| `rf_importance` | Random Forest feature importance (mean decrease in impurity) | Higher = that m/z split the data more cleanly across all trees. Relative values with no fixed scale. |
-| `svm_importance` | Mean absolute SVM coefficient across classes | Higher = that m/z pulled samples further apart at the decision boundary. Relative values. |
-| `gb_importance` | Gradient Boosting feature importance | Same interpretation as RF but from a different tree-building strategy. |
-| `lr_importance` | Mean absolute Logistic Regression coefficient | Higher = stronger linear association with group membership. |
-| `ridge_importance` | Mean absolute Ridge Regression coefficient | Higher = stronger regularized linear association with group membership. Complementary to `lr_importance`. |
-| `vip_score` | PLS-DA Variable Importance in Projection | The only column with a meaningful threshold: values above 1.0 are considered important. |
 | `n_methods` | How many of the 6 methods ranked this feature in their top 50 | **Start here.** This is the most useful column for prioritisation. |
 
-**Important: do not compare numbers across columns.** Each importance metric is on a completely different scale — a `rf_importance` of 0.02 and a `vip_score` of 1.5 cannot be directly compared. Instead, use each column to rank features within that method, and use `n_methods` to identify the most consistently important features across all methods.
+**Per-method importance scores** — each on a different scale, do not compare across columns.
+
+| Column | What it means |
+|--------|--------------|
+| `rf_importance` | Random Forest feature importance (mean decrease in impurity) |
+| `svm_importance` | Mean absolute SVM coefficient across classes |
+| `gb_importance` | Gradient Boosting feature importance |
+| `lr_importance` | Mean absolute Logistic Regression coefficient |
+| `ridge_importance` | Mean absolute Ridge Regression coefficient |
+| `vip_score` | PLS-DA Variable Importance in Projection — the only column with a meaningful threshold (values > 1.0 are considered important) |
+
+**Per-group attribution columns** — these answer the question "which condition is this feature coming from?"
+
+| Column | What it means | How to use it |
+|--------|--------------|---------------|
+| `mean_<group>` | Mean log-normalised intensity in that group (raw biology) | Compare across groups for the same row to see where the signal actually sits |
+| `ridge_<group>` | Signed one-vs-rest Ridge coefficient for that group | Positive = feature pushes samples toward that group; negative = pushes away |
+| `top_condition_mean` | Group with the highest `mean_<group>` value | The "where does the compound look most abundant" answer |
+| `top_condition_ridge` | Group with the largest positive `ridge_<group>` value | The "which group does the model think this feature predicts" answer — accounts for multivariate structure |
+| `mean_margin` | Top mean / second-highest mean (>=1) | Values close to 1.0 mean the feature is similarly abundant in 2+ groups, so the `top_condition_mean` call is ambiguous |
+| `ridge_direction` | `'elevated'` / `'suppressed'` / `'mixed'` | Tells you whether one group stands out as positive (elevated), one stands out as negative (suppressed), or the picture is mixed across groups |
+
+**Why two "top condition" columns?** `mean` is univariate — it just says where the feature is most abundant. `ridge` is multivariate — it says which group the feature most distinguishes when the full feature matrix is taken into account. They usually agree. When they disagree, the feature is important because of its *combination* with other features, not because of its raw abundance, and that's worth investigating.
+
+**Important: do not compare numbers across importance columns.** Each importance metric is on a completely different scale — a `rf_importance` of 0.02 and a `vip_score` of 1.5 cannot be directly compared. Instead, use each column to rank features within that method, and use `n_methods` to identify the most consistently important features across all methods.
 
 **How to prioritise candidates:**
 
 1. Sort by `n_methods` descending — features appearing in 5 or 6 methods are your strongest candidates
 2. Among features with the same `n_methods`, check whether `vip_score` is above 1.0
-3. Look at the spectrum plot (`spectrum_features_*.png`) to see where these features sit in the raw data
+3. Read `top_condition_mean` and `top_condition_ridge` to identify which group each feature is associated with
+4. If `mean_margin` is close to 1.0, the feature is high in multiple groups — flag it as ambiguous
+5. Look at the spectrum plot (`spectrum_features_*.png`) to see where these features sit in the raw data
 
 ---
 

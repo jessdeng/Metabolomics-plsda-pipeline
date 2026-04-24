@@ -164,7 +164,7 @@ Outputs are saved to `output_standard/` or `output_r_comparable/` depending on w
 | `vip_scores_*.png` | Top VIP features with intensity heatmap |
 | `classifier_comparison_*.png` | Per-fold accuracy and overfitting panel |
 | `spectrum_features_*.png` | Average spectrum with important features marked |
-| `feature_overlap_*.csv` | Ensemble feature candidates ranked by method agreement |
+| `feature_overlap_*.csv` | Ensemble feature candidates ranked by method agreement, with per-group mean intensity, signed Ridge coefficients, and a "top condition" call for each feature |
 | `classifier_results_*.npz` | Saved CV results — loaded automatically by extras |
 
 ---

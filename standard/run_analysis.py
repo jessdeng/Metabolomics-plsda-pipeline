@@ -72,6 +72,15 @@ def main():
     print(f"  Normalization     : {config.NORMALIZATION}")
     print(f"  Transformation    : {config.LOG_TRANSFORM}")
     print(f"  Scaling           : {config.SCALING}")
+    # Normalised + log-transformed but unscaled — used for per-group mean
+    # intensities so downstream condition columns are interpretable on the
+    # raw log-intensity axis rather than the autoscaled axis.
+    X_norm = preprocess(
+        X_filt.copy(),
+        normalization=config.NORMALIZATION,
+        log_transform=config.LOG_TRANSFORM,
+        scaling='none'
+    )
     X = preprocess(
         X_filt,
         normalization=config.NORMALIZATION,
@@ -133,7 +142,9 @@ def main():
     print("\n[12/12] Feature Importance Overlap Analysis")
     overlap_df, counts = feature_importance_analysis(
         X, y_labels, mz, safe_name, out_dir,
-        top_n=config.TOP_N_FEATURES
+        top_n=config.TOP_N_FEATURES,
+        X_norm=X_norm,
+        log_transform=config.LOG_TRANSFORM,
     )
     plot_spectrum_with_features(X_binned, mz_binned, y_labels, overlap_df, experiment_name,
                                 out_path=os.path.join(out_dir, f"spectrum_features_{safe_name}.png"))

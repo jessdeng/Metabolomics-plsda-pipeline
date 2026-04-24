@@ -188,16 +188,55 @@ def plot_accuracy_comparison(results, experiment_name, out_path):
 
 # ── Feature importance overlap ────────────────────────────────────────────────
 
-def feature_importance_analysis(X, y_labels, mz, safe_name, out_dir, top_n=50):
+def feature_importance_analysis(X, y_labels, mz, safe_name, out_dir,
+                                top_n=50, X_norm=None, log_transform='log10'):
     """
-    Fits RF, SVM, GB, LR, and PLS-DA (VIP) on the full dataset and finds
-    m/z features that appear in the top 50 of at least 2 methods.
+    Fits RF, SVM, GB, LR, Ridge, and PLS-DA (VIP) on the full dataset and finds
+    m/z features that appear in the top `top_n` of at least 2 of these 6 methods.
 
-    Ridge Regression is included via its
-    linear coefficients.
+    Parameters
+    ----------
+    X : ndarray (n_samples, n_features)
+        Fully preprocessed feature matrix (normalised + transformed + scaled).
+        Used by all classifiers and for the Ridge one-vs-rest coefficients.
+    y_labels : ndarray of str
+        Group labels per sample.
+    mz : ndarray
+        m/z value for each feature.
+    safe_name : str
+        Filesystem-safe experiment name (used in output filename).
+    out_dir : str
+        Directory where the feature_overlap CSV is written.
+    top_n : int
+        How many top-ranked features per method to count for the overlap.
+    X_norm : ndarray (n_samples, n_features), optional
+        Same shape as X, but normalised + log-transformed only (no scaling).
+        Used for per-group mean intensities so the values are comparable to
+        the raw spectrum. If None, mean columns are skipped (back-compat).
+    log_transform : str
+        Transformation used to produce X_norm — one of 'log10', 'log2', 'sqrt',
+        'none'. Used to compute mean_margin in linear space (a ratio) rather
+        than as a quotient on the transformed axis (which would be meaningless).
+
+    Output CSV columns
+    ------------------
+    Identification:
+        mz, n_methods
+    Per-method importances:
+        rf_importance, svm_importance, gb_importance, lr_importance,
+        ridge_importance, vip_score
+    Per-group attribution (NEW):
+        mean_<group>          — mean log-normalised intensity per group
+        ridge_<group>         — signed one-vs-rest Ridge coefficient per group
+        top_condition_mean    — group with the highest mean intensity
+        top_condition_ridge   — group with the largest positive Ridge coefficient
+        mean_margin           — top mean / second-highest mean in LINEAR space
+                                (>=1; values close to 1 = ambiguous call)
+        ridge_direction       — 'elevated' / 'suppressed' / 'mixed'
     """
     le = LabelEncoder()
     y = le.fit_transform(y_labels)
+    classes = le.classes_
 
     # Fit each model
     rf = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -246,7 +285,84 @@ def feature_importance_analysis(X, y_labels, mz, safe_name, out_dir, top_n=50):
         'ridge_importance': ridge_imp[overlap_list],
         'vip_score':       vip_imp[overlap_list],
         'n_methods':       [counts[idx] for idx in overlap_list],
-    }).sort_values('n_methods', ascending=False)
+    })
+
+    # ── Per-group attribution columns ─────────────────────────────────────────
+    print(f"  Adding per-group attribution: mean intensity + Ridge one-vs-rest")
+
+    # Ridge one-vs-rest coefficients on the SCALED matrix (one row per class).
+    # ridge.coef_ shape: (n_classes, n_features) when n_classes > 2,
+    #                    (1, n_features)         when binary.
+    if ridge.coef_.shape[0] == 1 and len(classes) == 2:
+        # Binary case: scikit-learn returns one row representing class 1.
+        # Mirror it so we have a positive/negative coefficient per class.
+        ridge_signed = np.vstack([-ridge.coef_[0], ridge.coef_[0]])
+    else:
+        ridge_signed = ridge.coef_  # (n_classes, n_features)
+
+    # Per-group mean intensity on the unscaled (but normalised + logged) matrix.
+    # Falls back to the scaled matrix if X_norm not supplied (less interpretable
+    # but keeps the function callable in legacy contexts).
+    X_for_means = X_norm if X_norm is not None else X
+    if X_norm is None:
+        print("  WARNING: X_norm not provided — mean_<group> columns will be on "
+              "the scaled axis, not raw log-intensity")
+
+    for j, group in enumerate(classes):
+        mask = (y_labels == group)
+        means_full = X_for_means[mask].mean(axis=0)              # (n_features,)
+        overlap_df[f'mean_{group}']  = means_full[overlap_list]
+        overlap_df[f'ridge_{group}'] = ridge_signed[j, overlap_list]
+
+    mean_cols  = [f'mean_{g}'  for g in classes]
+    ridge_cols = [f'ridge_{g}' for g in classes]
+
+    # Top condition by mean: highest mean intensity wins
+    mean_arr = overlap_df[mean_cols].values
+    top_idx_mean = np.argmax(mean_arr, axis=1)
+    overlap_df['top_condition_mean'] = [classes[i] for i in top_idx_mean]
+
+    # Mean margin: ratio of top mean to second-highest mean, in LINEAR space.
+    # A simple quotient of the transformed values is meaningless (and on a log
+    # axis can flip sign whenever the second-highest value is negative — which
+    # is normal after log10 of a low intensity). We invert the transform first.
+    sorted_means = np.sort(mean_arr, axis=1)[:, ::-1]            # descending
+    top1 = sorted_means[:, 0]
+    top2 = sorted_means[:, 1] if sorted_means.shape[1] > 1 else top1
+
+    if log_transform == 'log10':
+        overlap_df['mean_margin'] = 10.0 ** (top1 - top2)
+    elif log_transform == 'log2':
+        overlap_df['mean_margin'] = 2.0 ** (top1 - top2)
+    elif log_transform == 'sqrt':
+        # Invert sqrt by squaring, then take ratio in linear space.
+        # Uses np.where to avoid division warnings; tiny squares -> nan margin.
+        lin1 = top1 ** 2
+        lin2 = top2 ** 2
+        overlap_df['mean_margin'] = np.where(lin2 > 0, lin1 / lin2, np.nan)
+    else:
+        # No transform applied — values are already linear intensities.
+        overlap_df['mean_margin'] = np.where(top2 > 0, top1 / top2, np.nan)
+
+    # Top condition by Ridge: largest POSITIVE coefficient.
+    # Direction tag interprets the sign pattern across groups.
+    ridge_arr = overlap_df[ridge_cols].values
+    top_idx_ridge = np.argmax(ridge_arr, axis=1)
+    overlap_df['top_condition_ridge'] = [classes[i] for i in top_idx_ridge]
+
+    n_pos = (ridge_arr > 0).sum(axis=1)
+    n_neg = (ridge_arr < 0).sum(axis=1)
+    direction = []
+    for p, n in zip(n_pos, n_neg):
+        if p == 1 and n >= 1:
+            direction.append('elevated')      # single group up, others down
+        elif n == 1 and p >= 1:
+            direction.append('suppressed')    # single group down, others up
+        else:
+            direction.append('mixed')         # multiple groups same sign
+    overlap_df['ridge_direction'] = direction
+
+    overlap_df = overlap_df.sort_values('n_methods', ascending=False)
 
     csv_path = os.path.join(out_dir, f'feature_overlap_{safe_name}.csv')
     overlap_df.to_csv(csv_path, index=False, encoding='utf-8')
