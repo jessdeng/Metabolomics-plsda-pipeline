@@ -13,7 +13,7 @@ Reference: van den Berg et al. (2006) BMC Genomics 7:142
 # ── Experiment ─────────────────────────────────────────────────────────────────
 # The name of your experiment folder. Must be in the same directory as the
 # .py files. Include spaces and special characters exactly as they appear.
-EXPERIMENT = 'your_experiment_folder'
+EXPERIMENT = 'F11A Lights with Media'
 
 
 # ── m/z Range ──────────────────────────────────────────────────────────────────
