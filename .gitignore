@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Experiment data folders (raw MS data — do not publish)
+F11A Lights with Media/
+F11B Lights with Media/
+S9 Lights with Media/
+RW Negative Mode/
+RW Positive Mode/
+
+# Pipeline outputs
+output_standard/
+output_r_comparable/
+output_standard.zip
+
+# Personal projects (not part of the toolkit)
+shiny_app/
